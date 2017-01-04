@@ -12,7 +12,7 @@ const int max_number_of_primers = 10000;
 const int tail_len = 5;
 const int hash_base = 4;
 const int hash_table_size = pow(hash_base, tail_len);
-const int mismatches = 1;
+const int mismatches = 0;
 
 typedef struct node {
   int primer_index;
@@ -57,7 +57,7 @@ std::set<int> MismatchHash(char* input_string, int mismatches) {
 }
 
 int main(int argc, char* argv[]) {
-  int i; /* counter variable */
+  int i, j; /* counter variables */
 
   /* open file */
   FILE * infile;
@@ -128,14 +128,46 @@ int main(int argc, char* argv[]) {
   
   /* sliding a window along each primer and hash it (rolling hash) */
   char tmp_primer[max_primer_length + 1];
-  for (i = 0; i < number_of_primers; ++i) {
+  for (int i = 0; i < number_of_primers; ++i) {
     strcpy(tmp_primer, primers[i]);
-    /*char* window;
-    window = tmp_primer - tail_len;
-    printf("%s\n", window);
-    */
-  }
+    char* window;
+    window = tmp_primer + strlen(tmp_primer) - tail_len;
+    //printf("%s\n", window);
+    while (window != tmp_primer) {
+      //printf("%s\n", window);
+      tmp_node_ptr = hash_table[hash(window)];
 
+      /* travel through the index (which is a linked list) of the hash table */
+      while(tmp_node_ptr != NULL) {
+        j = tmp_node_ptr->primer_index;
+        if (i <= j) {
+          hit[i][j] = 1;
+        } else {
+          hit[j][i] = 1;
+        }
+        tmp_node_ptr = tmp_node_ptr->next;
+      }
+
+      --window;
+      tmp_primer[strlen(tmp_primer) - 1] = '\0';
+    }
+  }
+  
+  /* calculate hit statistics */
+  int hits, max_hits = 0;
+  std::vector<int> all_hits;
+  for (int i = 0; i < number_of_primers; ++i) {
+    hits = 0;
+    for (int j = 0; j < number_of_primers; ++j) {
+      if (hit[i][j]) ++hits;
+    }
+    if (hits > max_hits) max_hits = hits;
+    all_hits.push_back(hits);
+  }
+  double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0LL) / all_hits.size();
+  printf("the max_hits for any primer = %i\n", max_hits);
+  printf("the avg_hits for each primer = %f\n", avg_hits);
+  
 
   /* free hash table */
   node_t* node_ptr_1;
