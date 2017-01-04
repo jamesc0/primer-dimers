@@ -1,7 +1,7 @@
-#include <stdio.h>
-#include <string.h>
+#include <stdio.h>      /* for printf, scanf, fscanf */
+#include <string.h>     /* for strlen(), strcpy() */
 #include <stdlib.h>
-#include <algorithm>
+#include <algorithm>    /* for std::accumulate() */
 #include <map>          /* for std::map */
 #include <math.h>       /* for pow() */
 #include <set>          /* for std::set */
@@ -9,9 +9,9 @@
 const char* infile_name = "data/test_data_primers_4000_25.txt";
 const int max_primer_length = 50;
 const int max_number_of_primers = 10000;
-const int tail_len = 5;
+const int max_tail_len = 5;
 const int hash_base = 4;
-const int hash_table_size = pow(hash_base, tail_len);
+const int hash_table_size = pow(hash_base, max_tail_len);
 const int mismatches = 0;
 
 typedef struct node {
@@ -39,13 +39,13 @@ void ReverseComplement(char* dst, char* src) {
 std::set<int> MismatchHash(char* input_string, int mismatches) {
   if (mismatches != 1 && mismatches != 0) printf("ERROR: this can only handle 0 or 1 mismatches right now");
   std::set<int> ret_set;
-  char tmp[tail_len + 1];
+  char tmp[max_tail_len + 1];
   int len = strlen(input_string);
   if (mismatches == 0) {
     ret_set.insert(hash(input_string));
     return ret_set;
   }
-  for (int i = 1; i < len; ++i) { /* the last base must match */
+  for (int i = 0; i < len; ++i) {
     /* i is the index of the mismatch */
     strcpy(tmp, input_string);
     for (char c: bases) {
@@ -73,15 +73,22 @@ void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
   printf("The most entries in one index is %i\n", max_count);
 }
 
-void ReadInputFile(FILE* infile, char** primers, int* number_of_primers) { /* read contents of file */
-  fscanf(infile, "%d\n", number_of_primers);
-  //printf("number_of_primers = %i\n", *number_of_primers);
-  char *tmp;
-  for (int i = 0; i < *number_of_primers; ++i) {
-    tmp = (char*) malloc(1 + max_primer_length * sizeof(char));
-    fgets(tmp, max_primer_length, infile);
-    if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
-    primers[i] = tmp;
+void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, int tail_len) {
+  char tail_rc[max_tail_len + 1];   /* reverse complement of the tail */
+  std::set<int> hash_vals;
+  for (int i = 0; i < number_of_primers; ++i) {
+    ReverseComplement(tail_rc, primers[i] + strlen(primers[i]) - tail_len);
+    hash_vals = MismatchHash(tail_rc, mismatches);
+    for (int hash_val: hash_vals) {
+      node_t* tmp_node_ptr = (node_t*) malloc(sizeof(node_t));
+      tmp_node_ptr->primer_index = i;
+      if (hash_table[hash_val] == NULL) {
+        tmp_node_ptr->next = NULL;
+      } else {
+        tmp_node_ptr->next = hash_table[hash_val];
+      }
+      hash_table[hash_val] = tmp_node_ptr;
+    }
   }
 }
 
@@ -97,38 +104,31 @@ int main(int argc, char* argv[]) {
     printf("can't open infile\n");
     exit(EXIT_FAILURE);
   }
-  
-  char **primers = (char**) malloc(*max_number_of_primers * sizeof(char*));
 
-  /* create hash table */
-  node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
-  for (i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
-
-  /* load hash table */
-  char tail_rc[tail_len + 1];   /* reverse complement of the tail */
-  for (i = 0; i < number_of_primers; ++i) {
-    ReverseComplement(tail_rc, primers[i] + strlen(primers[i]) - tail_len);
-    std::set<int> hash_vals = MismatchHash(tail_rc, mismatches);
-    for (int hash_val: hash_vals) {
-      node_t* tmp_node_ptr = (node_t*) malloc(sizeof(node_t));
-      tmp_node_ptr->primer_index = i;
-      if (hash_table[hash_val] == NULL) {
-        tmp_node_ptr->next = NULL;
-      } else {
-        tmp_node_ptr->next = hash_table[hash_val];
-      }
-      hash_table[hash_val] = tmp_node_ptr;
-    }
+  /* read input file */
+  int number_of_primers;
+  char **primers = (char**) malloc(max_number_of_primers * sizeof(char*));
+  fscanf(infile, "%d\n", &number_of_primers);
+  //printf("number_of_primers = %i\n", *number_of_primers);
+  char *tmp;
+  for (int i = 0; i < number_of_primers; ++i) {
+    tmp = (char*) malloc(1 + max_primer_length * sizeof(char));
+    fgets(tmp, max_primer_length, infile);
+    if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
+    primers[i] = tmp;
   }
 
+  /* create and load hash table */
+  node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
+  for (i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
+  int tail_len = 5;
+  LoadHashTable(hash_table, primers, number_of_primers, tail_len);
   PrintHashTableStatistics(hash_table, hash_table_size);
 
   /* create a hit table */
   std::vector<std::vector<int>> hit;
   std::vector<int> tmp_vect(max_number_of_primers, 0);
-  for (int i = 0; i < max_number_of_primers; ++i) {
-    hit.push_back(tmp_vect);
-  }
+  for (int i = 0; i < max_number_of_primers; ++i) hit.push_back(tmp_vect);
   
   /* sliding a window along each primer and hash it (rolling hash) */
   char tmp_primer[max_primer_length + 1];
