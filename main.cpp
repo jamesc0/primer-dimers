@@ -33,7 +33,7 @@ int hash(char* str) {
 void ReverseComplement(char* dst, char* src) {
   int len = strlen(src);
   dst[len] = '\0';
-  for (int i = 0; src[i] != '\0'; ++i) dst[len - 1 - i] = src[i];
+  for (int i = 0; src[i] != '\0'; ++i) dst[len - 1 - i] = complement_map(src[i]);
 }
 
 std::set<int> MismatchHash(char* input_string, int mismatches) {
