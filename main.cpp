@@ -36,6 +36,39 @@ void ReverseComplement(char* dst, char* src) {
   for (int i = 0; src[i] != '\0'; ++i) dst[len - 1 - i] = complement_map[src[i]];
 }
 
+std::set<std::set<int>> kSubsets(int n, int k) {
+  /* returns all k-subsets of {0, 1, ..., n-1} */
+  if (k < 1) printf("ERROR: in kSubsets k must be >= 1");
+  if (k > n) printf("ERROR: in kSubsets k must be < n");
+  
+  std::set<std::set<int>> ret_set;
+  std::set<int> tmp_set;
+  std::vector<int> include_indexes;
+  for (int i = 0; i < k; ++i) include_indexes.push_back(i);
+
+  while(1) {
+    tmp_set.clear();
+    for (int i: include_indexes) tmp_set.insert(i);
+    ret_set.insert(tmp_set);
+    if (include_indexes[0] == (n-1)-(k-1)) break;
+    
+    /* update include_indexes */
+    for (int i = include_indexes.size() - 1; i >= 0; --i) {
+      if (i == include_indexes.size() - 1 && include_indexes[i] < n-1) {
+        ++include_indexes[i];
+        break;
+      } else if (i < include_indexes.size() - 1 && include_indexes[i] < include_indexes[i+1] - 1) {
+        ++include_indexes[i];
+        for (int j = i + 1; j < include_indexes.size(); ++j) {
+          include_indexes[j] = include_indexes[j-1]+1;
+        }
+        break;
+      }
+    }
+  }
+  return ret_set;
+}
+
 std::set<int> MismatchHash(char* input_string, int mismatches) {
   if (mismatches != 1 && mismatches != 0) printf("ERROR: this can only handle 0 or 1 mismatches right now");
   std::set<int> ret_set;
@@ -155,10 +188,7 @@ std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers,
   return hit;
 }
 
-
 int main(int argc, char* argv[]) {
-  int i, j; /* counter variables */
-
   /* open file */
   FILE * infile;
   infile = fopen(infile_name, "r");
@@ -182,9 +212,12 @@ int main(int argc, char* argv[]) {
     primers[i] = tmp;
   }
 
+  /* close infile */
+  fclose(infile);
+
   /* create hash table */
   node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
-  for (i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
+  for (int i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
 
   int tail_len = 5;
   LoadHashTable(hash_table, primers, number_of_primers, tail_len, mismatches);
@@ -198,16 +231,8 @@ int main(int argc, char* argv[]) {
   free(hash_table);
 
   /* free memory from input*/
-  for (i = 0; i < number_of_primers; ++i) free(primers[i]);
+  for (int i = 0; i < number_of_primers; ++i) free(primers[i]);
   free(primers);
-
-  /* close infile */
-  fclose(infile);
-
-  char test_src[6] = "ATCG";
-  char test_dst[6];
-  ReverseComplement(test_dst, test_src);
-  printf("%s %s\n", test_src, test_dst);
 
   return 0;
 }
