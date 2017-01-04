@@ -12,7 +12,7 @@ const int max_number_of_primers = 10000;
 const int tail_len = 5;
 const int hash_base = 4;
 const int hash_table_size = pow(hash_base, tail_len);
-const int mismatches = 1;
+const int mismatches = 0;
 
 typedef struct node {
   int primer_index;
@@ -56,6 +56,35 @@ std::set<int> MismatchHash(char* input_string, int mismatches) {
   return ret_set;
 }
 
+void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
+  int count, max_count = 0, total_count = 0;
+  node_t* tmp_node_ptr;
+  for (int i = 0; i < hash_table_size; ++i) {
+    count = 0;
+    tmp_node_ptr = hash_table[i];
+    while (tmp_node_ptr != NULL) {
+      ++count;
+      tmp_node_ptr = tmp_node_ptr->next;
+    }
+    if (count > max_count) max_count = count;
+    total_count += count;
+  }
+  printf("There are %i total entries in the hash table\n", total_count);
+  printf("The most entries in one index is %i\n", max_count);
+}
+
+void ReadInputFile(FILE* infile, char** primers, int* number_of_primers) { /* read contents of file */
+  fscanf(infile, "%d\n", number_of_primers);
+  //printf("number_of_primers = %i\n", *number_of_primers);
+  char *tmp;
+  for (int i = 0; i < *number_of_primers; ++i) {
+    tmp = (char*) malloc(1 + max_primer_length * sizeof(char));
+    fgets(tmp, max_primer_length, infile);
+    if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
+    primers[i] = tmp;
+  }
+}
+
 int main(int argc, char* argv[]) {
   int i, j; /* counter variables */
 
@@ -69,18 +98,7 @@ int main(int argc, char* argv[]) {
     exit(EXIT_FAILURE);
   }
   
-  /* read contents of file */
-  int number_of_primers;
-  fscanf(infile, "%d\n", &number_of_primers);
-  printf("number_of_primers = %i\n", number_of_primers);
-  char **primers = (char**) malloc(max_number_of_primers * sizeof(char*));
-  char *tmp;
-  for (i = 0; i < number_of_primers; ++i) {
-    tmp = (char*) malloc(1 + max_primer_length * sizeof(char));
-    fgets(tmp, max_primer_length, infile);
-    if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
-    primers[i] = tmp;
-  }
+  char **primers = (char**) malloc(*max_number_of_primers * sizeof(char*));
 
   /* create hash table */
   node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
@@ -103,22 +121,8 @@ int main(int argc, char* argv[]) {
     }
   }
 
-  /* print hash table statistics */
-  int count, max_count = 0, total_count = 0;
-  node_t* tmp_node_ptr;
-  for (i = 0; i < hash_table_size; ++i) {
-    count = 0;
-    tmp_node_ptr = hash_table[i];
-    while (tmp_node_ptr != NULL) {
-      ++count;
-      tmp_node_ptr = tmp_node_ptr->next;
-    }
-    if (count > max_count) max_count = count;
-    total_count += count;
-  }
-  printf("There are %i total entries in the hash table\n", total_count);
-  printf("The most entries in one index is %i\n", max_count);
-  
+  PrintHashTableStatistics(hash_table, hash_table_size);
+
   /* create a hit table */
   std::vector<std::vector<int>> hit;
   std::vector<int> tmp_vect(max_number_of_primers, 0);
@@ -128,6 +132,7 @@ int main(int argc, char* argv[]) {
   
   /* sliding a window along each primer and hash it (rolling hash) */
   char tmp_primer[max_primer_length + 1];
+  node_t* tmp_node_ptr;
   for (int i = 0; i < number_of_primers; ++i) {
     strcpy(tmp_primer, primers[i]);
     char* window;
@@ -163,11 +168,13 @@ int main(int argc, char* argv[]) {
     }
     all_hits.push_back(hits);
   }
-  double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0LL) / all_hits.size();
+  double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0ULL) / all_hits.size();
   printf("the max_hits for any primer = %i, for primer %i\n", max_hits, max_hits_index);
-  for (int j = 0; j < number_of_primers; ++j) {;}
+  for (int j = 0; j < number_of_primers; ++j) {
+    //printf("%i", hit[max_hits_index][j]);
+  }
+  //printf("\n");
   printf("the avg_hits for each primer = %f\n", avg_hits);
-
 
   /* free hash table */
   node_t* node_ptr_1;
