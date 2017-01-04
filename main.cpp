@@ -105,6 +105,57 @@ void ClearHashTable(node** hash_table, int hash_table_size) {
   }
 }
 
+void PrintHitStatistics(std::vector<std::vector<int>> hit, int number_of_primers) {
+  int hits, max_hits = 0, max_hits_index;
+  std::vector<int> all_hits;
+  for (int i = 0; i < number_of_primers; ++i) {
+    hits = 0;
+    for (int j = 0; j < number_of_primers; ++j) {
+      if (hit[i][j]) ++hits;
+    }
+    if (hits > max_hits) {
+      max_hits = hits;
+      max_hits_index = i;
+    }
+    all_hits.push_back(hits);
+  }
+  double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0ULL) / (double)all_hits.size();
+  printf("the max_hits for any primer = %i, for primer %i\n", max_hits, max_hits_index);
+  printf("the avg_hits for each primer = %f\n", avg_hits);
+  printf("the avg percentage hits for each primer = %f%%\n", 100*avg_hits/number_of_primers);
+}
+
+std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers, node_t** hash_table, int tail_len) {
+  /* initialise hit vector */
+  std::vector<std::vector<int>> hit;
+  std::vector<int> zero_vect(number_of_primers, 0);
+  for (int i = 0; i < number_of_primers; ++i) hit.push_back(zero_vect);
+  
+  char tmp_primer[max_primer_length + 1];
+  node_t* tmp_node_ptr;
+  for (int i = 0; i < number_of_primers; ++i) {
+    strcpy(tmp_primer, primers[i]);
+    char* window;
+    window = tmp_primer + strlen(tmp_primer) - tail_len;
+    //printf("%s\n", window);
+    while (window != tmp_primer) {
+      //printf("%s\n", window);
+      tmp_node_ptr = hash_table[hash(window)];
+
+      /* travel through the index (which is a linked list) of the hash table */
+      while(tmp_node_ptr != NULL) {
+        hit[i][tmp_node_ptr->primer_index] = hit[tmp_node_ptr->primer_index][i] = 1;
+        tmp_node_ptr = tmp_node_ptr->next;
+      }
+
+      --window;
+      tmp_primer[strlen(tmp_primer) - 1] = '\0';
+    }
+  }
+  return hit;
+}
+
+
 int main(int argc, char* argv[]) {
   int i, j; /* counter variables */
 
@@ -131,63 +182,17 @@ int main(int argc, char* argv[]) {
     primers[i] = tmp;
   }
 
-  /* create and load hash table */
+  /* create hash table */
   node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
   for (i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
+
   int tail_len = 5;
   LoadHashTable(hash_table, primers, number_of_primers, tail_len, mismatches);
   PrintHashTableStatistics(hash_table, hash_table_size);
-
-  /* create a hit table */
   std::vector<std::vector<int>> hit;
-  std::vector<int> tmp_vect(max_number_of_primers, 0);
-  for (int i = 0; i < max_number_of_primers; ++i) hit.push_back(tmp_vect);
-  
-  /* sliding a window along each primer and hash it (rolling hash) */
-  char tmp_primer[max_primer_length + 1];
-  node_t* tmp_node_ptr;
-  for (int i = 0; i < number_of_primers; ++i) {
-    strcpy(tmp_primer, primers[i]);
-    char* window;
-    window = tmp_primer + strlen(tmp_primer) - tail_len;
-    //printf("%s\n", window);
-    while (window != tmp_primer) {
-      //printf("%s\n", window);
-      tmp_node_ptr = hash_table[hash(window)];
-
-      /* travel through the index (which is a linked list) of the hash table */
-      while(tmp_node_ptr != NULL) {
-        j = tmp_node_ptr->primer_index;
-        hit[i][j] = hit[j][i] = 1;
-        tmp_node_ptr = tmp_node_ptr->next;
-      }
-
-      --window;
-      tmp_primer[strlen(tmp_primer) - 1] = '\0';
-    }
-  }
-  
-  /* calculate hit statistics */
-  int hits, max_hits = 0, max_hits_index;
-  std::vector<int> all_hits;
-  for (int i = 0; i < number_of_primers; ++i) {
-    hits = 0;
-    for (int j = 0; j < number_of_primers; ++j) {
-      if (hit[i][j]) ++hits;
-    }
-    if (hits > max_hits) {
-      max_hits = hits;
-      max_hits_index = i;
-    }
-    all_hits.push_back(hits);
-  }
-  double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0ULL) / all_hits.size();
-  printf("the max_hits for any primer = %i, for primer %i\n", max_hits, max_hits_index);
-  for (int j = 0; j < number_of_primers; ++j) {
-    //printf("%i", hit[max_hits_index][j]);
-  }
-  //printf("\n");
-  printf("the avg_hits for each primer = %f\n", avg_hits);
+  hit = SlideWindow(primers, number_of_primers, hash_table, tail_len);
+  PrintHitStatistics(hit, number_of_primers);
+  ClearHashTable(hash_table, hash_table_size);
 
   /* free hash table */
   free(hash_table);
