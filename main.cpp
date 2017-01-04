@@ -2,28 +2,30 @@
 #include <string.h>
 #include <stdlib.h>
 #include <algorithm>
-#include <map>
-#include <math.h>
+#include <map>          /* for std::map */
+#include <math.h>       /* for pow() */
+#include <set>          /* for std::set */
 
 const char* infile_name = "data/test_data_primers_4000_25.txt";
-const int base = 4;
+const int max_primer_length = 50;
+const int max_number_of_primers = 10000;
 const int tail_len = 5;
-const int hash_table_size = pow(base, tail_len);
-const int max_sequence_length = 50;
-const int max_number_of_primers = 50000;
+const int hash_base = 4;
+const int hash_table_size = pow(hash_base, tail_len);
+const int mismatches = 1;
 
 typedef struct node {
   int primer_index;
   node* next;
 } node_t;
 
+std::vector<char> bases = {'A', 'T', 'C', 'G'};
 std::map<char, char> complement_map = {{'A', 'T'}, {'T', 'A'}, {'C', 'G'}, {'G', 'C'}};
 std::map<char, int> base_map = {{'A', 0}, {'T', 1}, {'C', 2}, {'G', 3}};
 
 int hash(char* str) {
   int val = 0;
-  int i;
-  for (i = 0; str[i] != '\0'; ++i) val += pow(base, i) * base_map[str[i]];
+  for (int i = 0; str[i] != '\0'; ++i) val += pow(hash_base, i) * base_map[str[i]];
   val %= hash_table_size;
   return val;
 }
@@ -31,12 +33,31 @@ int hash(char* str) {
 void ReverseComplement(char* dst, char* src) {
   int len = strlen(src);
   dst[len] = '\0';
-  int i;
-  for (i = 0; src[i] != '\0'; ++i) dst[len - 1 - i] = src[i];
+  for (int i = 0; src[i] != '\0'; ++i) dst[len - 1 - i] = src[i];
+}
+
+std::set<int> MismatchHash(char* input_string, int mismatches) {
+  if (mismatches != 1 && mismatches != 0) printf("ERROR: this can only handle 0 or 1 mismatchs right now");
+  std::set<int> ret_set;
+  char tmp[tail_len + 1];
+  int len = strlen(input_string);
+  if (mismatches == 0) {
+    ret_set.insert(hash(input_string));
+    return ret_set;
+  }
+  for (int i = 1; i < len; ++i) { /* the last base must match */
+    /* i is the index of the mismatch */
+    strcpy(tmp, input_string);
+    for (char c: bases) {
+      tmp[i] = c;
+      ret_set.insert(hash(tmp));
+    }
+  }
+  return ret_set;
 }
 
 int main(int argc, char* argv[]) {
-  int i; /* counter variables */
+  int i; /* counter variable */
 
   /* open file */
   FILE * infile;
@@ -55,8 +76,8 @@ int main(int argc, char* argv[]) {
   char **primers = (char**) malloc(max_number_of_primers * sizeof(char*));
   char *tmp;
   for (i = 0; i < number_of_primers; ++i) {
-    tmp = (char*) malloc(max_sequence_length * sizeof(char));
-    fgets(tmp, max_sequence_length, infile);
+    tmp = (char*) malloc(1 + max_primer_length * sizeof(char));
+    fgets(tmp, max_primer_length, infile);
     if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
     primers[i] = tmp;
   }
@@ -66,20 +87,55 @@ int main(int argc, char* argv[]) {
   for (i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
 
   /* load hash table */
-  int hash_val;               /* output of the hash function */
-  char tail_rc[tail_len + 1]; /* reverse complement of the tail */
+  char tail_rc[tail_len + 1];   /* reverse complement of the tail */
   for (i = 0; i < number_of_primers; ++i) {
-    node_t* tmp_node_ptr = (node_t*) malloc(sizeof(node_t));
-    tmp_node_ptr->primer_index = i;
     ReverseComplement(tail_rc, primers[i] + strlen(primers[i]) - tail_len);
-    hash_val = hash(tail_rc);
-    if (hash_table[hash_val] == NULL) {
-      tmp_node_ptr->next = NULL;
-    } else {
-      tmp_node_ptr->next = hash_table[hash_val];
+    std::set<int> hash_vals = MismatchHash(tail_rc, mismatches);
+    for (int hash_val: hash_vals) {
+      node_t* tmp_node_ptr = (node_t*) malloc(sizeof(node_t));
+      tmp_node_ptr->primer_index = i;
+      if (hash_table[hash_val] == NULL) {
+        tmp_node_ptr->next = NULL;
+      } else {
+        tmp_node_ptr->next = hash_table[hash_val];
+      }
+      hash_table[hash_val] = tmp_node_ptr;
     }
-    hash_table[hash_val] = tmp_node_ptr;
   }
+
+  /* print hash table statistics */
+  int count, max_count = 0, total_count = 0;
+  node_t* tmp_node_ptr;
+  for (i = 0; i < hash_table_size; ++i) {
+    count = 0;
+    tmp_node_ptr = hash_table[i];
+    while (tmp_node_ptr != NULL) {
+      ++count;
+      tmp_node_ptr = tmp_node_ptr->next;
+    }
+    if (count > max_count) max_count = count;
+    total_count += count;
+  }
+  printf("There are %i total entries in the hash table\n", total_count);
+  printf("The most entries in one index is %i\n", max_count);
+  
+  /* create a hit table */
+  std::vector<std::vector<int>> hit;
+  std::vector<int> tmp_vect(max_number_of_primers, 0);
+  for (int i = 0; i < max_number_of_primers; ++i) {
+    hit.push_back(tmp_vect);
+  }
+  
+  /* sliding a window along each primer and hash it (rolling hash) */
+  char tmp_primer[max_primer_length + 1];
+  for (i = 0; i < number_of_primers; ++i) {
+    strcpy(tmp_primer, primers[i]);
+    /*char* window;
+    window = tmp_primer - tail_len;
+    printf("%s\n", window);
+    */
+  }
+
 
   /* free hash table */
   node_t* node_ptr_1;
