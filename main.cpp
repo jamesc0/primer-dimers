@@ -73,7 +73,7 @@ void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
   printf("The most entries in one index is %i\n", max_count);
 }
 
-void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, int tail_len) {
+void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, int tail_len, int mismatches) {
   char tail_rc[max_tail_len + 1];   /* reverse complement of the tail */
   std::set<int> hash_vals;
   for (int i = 0; i < number_of_primers; ++i) {
@@ -88,6 +88,19 @@ void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, i
         tmp_node_ptr->next = hash_table[hash_val];
       }
       hash_table[hash_val] = tmp_node_ptr;
+    }
+  }
+}
+
+void ClearHashTable(node** hash_table, int hash_table_size) {
+  node_t* node_ptr_1;
+  node_t* node_ptr_2;
+  for (int i = 0; i < hash_table_size; ++i) {
+    node_ptr_1 = hash_table[i];
+    while (node_ptr_1 != NULL) {
+      node_ptr_2 = node_ptr_1;
+      node_ptr_1 = node_ptr_1->next;
+      free(node_ptr_2);
     }
   }
 }
@@ -122,7 +135,7 @@ int main(int argc, char* argv[]) {
   node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
   for (i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
   int tail_len = 5;
-  LoadHashTable(hash_table, primers, number_of_primers, tail_len);
+  LoadHashTable(hash_table, primers, number_of_primers, tail_len, mismatches);
   PrintHashTableStatistics(hash_table, hash_table_size);
 
   /* create a hit table */
@@ -177,16 +190,6 @@ int main(int argc, char* argv[]) {
   printf("the avg_hits for each primer = %f\n", avg_hits);
 
   /* free hash table */
-  node_t* node_ptr_1;
-  node_t* node_ptr_2;
-  for (i = 0; i < hash_table_size; ++i) {
-    node_ptr_1 = hash_table[i];
-    while (node_ptr_1 != NULL) {
-      node_ptr_2 = node_ptr_1;
-      node_ptr_1 = node_ptr_1->next;
-      free(node_ptr_2);
-    }
-  }
   free(hash_table);
 
   /* free memory from input*/
