@@ -12,7 +12,7 @@ const int max_number_of_primers = 10000;
 const int tail_len = 5;
 const int hash_base = 4;
 const int hash_table_size = pow(hash_base, tail_len);
-const int mismatches = 0;
+const int mismatches = 1;
 
 typedef struct node {
   int primer_index;
@@ -37,7 +37,7 @@ void ReverseComplement(char* dst, char* src) {
 }
 
 std::set<int> MismatchHash(char* input_string, int mismatches) {
-  if (mismatches != 1 && mismatches != 0) printf("ERROR: this can only handle 0 or 1 mismatchs right now");
+  if (mismatches != 1 && mismatches != 0) printf("ERROR: this can only handle 0 or 1 mismatches right now");
   std::set<int> ret_set;
   char tmp[tail_len + 1];
   int len = strlen(input_string);
@@ -140,11 +140,7 @@ int main(int argc, char* argv[]) {
       /* travel through the index (which is a linked list) of the hash table */
       while(tmp_node_ptr != NULL) {
         j = tmp_node_ptr->primer_index;
-        if (i <= j) {
-          hit[i][j] = 1;
-        } else {
-          hit[j][i] = 1;
-        }
+        hit[i][j] = hit[j][i] = 1;
         tmp_node_ptr = tmp_node_ptr->next;
       }
 
@@ -154,20 +150,24 @@ int main(int argc, char* argv[]) {
   }
   
   /* calculate hit statistics */
-  int hits, max_hits = 0;
+  int hits, max_hits = 0, max_hits_index;
   std::vector<int> all_hits;
   for (int i = 0; i < number_of_primers; ++i) {
     hits = 0;
     for (int j = 0; j < number_of_primers; ++j) {
       if (hit[i][j]) ++hits;
     }
-    if (hits > max_hits) max_hits = hits;
+    if (hits > max_hits) {
+      max_hits = hits;
+      max_hits_index = i;
+    }
     all_hits.push_back(hits);
   }
   double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0LL) / all_hits.size();
-  printf("the max_hits for any primer = %i\n", max_hits);
+  printf("the max_hits for any primer = %i, for primer %i\n", max_hits, max_hits_index);
+  for (int j = 0; j < number_of_primers; ++j) {;}
   printf("the avg_hits for each primer = %f\n", avg_hits);
-  
+
 
   /* free hash table */
   node_t* node_ptr_1;
