@@ -8,12 +8,12 @@
 #include <stdlib.h>
 #include <string.h>     // for strlen(), strcpy()
 
-const char* infile_name = "data/test_data_primers_10000_25.txt";
-const int max_number_of_primers = 10000;
+const char* infile_name = "data/test_data_primers_4000_25.txt";
+const int max_number_of_primers = 4000;
 const int primer_len = 25;
 const int number_of_bases = 4;
 const int min_tail_len = 5;
-const int max_tail_len = 10;
+const int max_tail_len = 7;
 const int hash_base = 4;
 const int hash_table_size = pow(hash_base, max_tail_len);
 
@@ -27,11 +27,11 @@ std::map<char, char> complement_map = {{'A', 'T'}, {'T', 'A'}, {'C', 'G'}, {'G',
 std::map<char, char> next_base = {{'A', 'T'}, {'T', 'C'}, {'C', 'G'}, {'G', 'A'}};
 std::map<char, int> base_map = {{'A', 0}, {'T', 1}, {'C', 2}, {'G', 3}};
 
-int hash(char* str) {
-  int val = 0;
-  for (int i = 0; str[i] != '\0'; ++i) val += pow(hash_base, i) * base_map[str[i]];
-  if (val >= hash_table_size) printf("hashing error, val >= hash_table_size");
-  return val;
+int hash(std::string str) {
+  int ret_val = 0;
+  for (auto i = 0u; i < str.size(); ++i) ret_val += pow(hash_base, i) * base_map[str[i]];
+  if (ret_val >= hash_table_size) printf("hashing error, ret_val >= hash_table_size");
+  return ret_val;
 }
 
 void ReverseComplement(char* dst, char* src) {
@@ -136,9 +136,7 @@ void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, i
     ReverseComplement(tail_rc, primers[i] + strlen(primers[i]) - tail_len);
     similar_sequences = kMismatch(tail_rc, max_mismatches);
     for (std::string sequence: similar_sequences) {
-      char * tmp = new char [sequence.length()+1];
-      std::strcpy (tmp, sequence.c_str());
-      hash_val = hash(tmp);
+      hash_val = hash(sequence);
       node_t* tmp_node_ptr = (node_t*) malloc(sizeof(node_t));
       tmp_node_ptr->primer_index = i;
       if (hash_table[hash_val] == NULL) {
@@ -147,7 +145,6 @@ void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, i
         tmp_node_ptr->next = hash_table[hash_val];
       }
       hash_table[hash_val] = tmp_node_ptr;
-      delete tmp;
     }
   }
 }
@@ -181,7 +178,7 @@ void PrintHitStatistics(std::vector<std::vector<int>> hit, int number_of_primers
     }
     all_hits.push_back(hits);
   }
-  double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0ULL) / (double)all_hits.size();
+  double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0ull) / (double)all_hits.size();
   //printf("the max_hits for any primer = %i, for primer %i\n", max_hits, max_hits_index);
   //printf("the avg_hits for each primer = %f\n", avg_hits);
   //printf("the avg percentage hits for each primer = %f%%\n", 100*avg_hits/number_of_primers);
