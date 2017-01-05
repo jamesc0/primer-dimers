@@ -34,16 +34,19 @@ int hash(std::string str) {
   return ret_val;
 }
 
-void ReverseComplement(char* dst, char* src) {
-  int len = strlen(src);
-  dst[len] = '\0';
-  for (int i = 0; src[i] != '\0'; ++i) dst[len - 1 - i] = complement_map[src[i]];
+std::string ReverseComplement(std::string src) {
+  int len = src.size();
+  std::string ret_str = src;
+  for (int i = 0; i < len; ++i) {
+	  ret_str[len - 1 - i] = complement_map[src[i]];
+  }
+  return ret_str;
 }
 
 std::set<std::set<int>> kSubsets(int n, int k) {
-  /* returns all k-subsets of {0, 1, ..., n-1} */
+  // returns all k-subsets of {0, 1, ..., n-1}
   if (k < 1) printf("ERROR: in kSubsets k must be >= 1");
-  if (k > n) printf("ERROR: in kSubsets k must be < n");
+  if (k > n) printf("ERROR: in kSubsets k must be <= n");
   
   std::set<std::set<int>> ret_set;
   std::set<int> tmp_set;
@@ -73,34 +76,33 @@ std::set<std::set<int>> kSubsets(int n, int k) {
   return ret_set;
 }
 
-std::set<std::string> kMismatch(char* input_string, int max_mismatches) {
+std::set<std::string> kMismatch(std::string input_str, int max_mismatches) {
   std::set<std::string> ret_set;
-  std::string stdstr;
+  int len = input_str.size();
   if (max_mismatches < 0) {
     printf("ERROR: in kMismatch, max_mismatches must be nonnegative.");
     exit(EXIT_FAILURE);
   } else if (max_mismatches == 0) {
-    stdstr = input_string;
-    ret_set.insert(stdstr);
+    ret_set.insert(input_str);
   } else {
-    int len = strlen(input_string);
     if (max_mismatches > len) max_mismatches = len;
     std::set<std::set<int>> s = kSubsets(len, max_mismatches);
     std::vector<int> include_indexes_sorted;
-    char tmp[max_tail_len + 1];
+    //char tmp[max_tail_len + 1];
+    std::string tmp_str;
     for (std::set<int> include_indexes: s) {
-      strcpy(tmp, input_string);
+      //strcpy(tmp, input_string);
+      tmp_str = input_str;
       include_indexes_sorted.clear();
       for (int i: include_indexes) include_indexes_sorted.push_back(i);
       std::sort(include_indexes_sorted.begin(), include_indexes_sorted.end());
-      for (int i: include_indexes_sorted) tmp[i] = 'A';
+      for (int i: include_indexes_sorted) tmp_str[i] = 'A';
       for (int j = 0; j < pow(number_of_bases, max_mismatches); j++) {
-        stdstr = tmp;
-        ret_set.insert(stdstr);
+        ret_set.insert(tmp_str);
         for (auto i = 0u; i < include_indexes_sorted.size(); ++i) {
-          if (tmp[include_indexes_sorted[i]] != 'G') {
-            tmp[include_indexes_sorted[i]] = next_base[tmp[include_indexes_sorted[i]]];
-            for (auto u = 0u; u < i; ++u) tmp[include_indexes_sorted[u]] = 'A';
+          if (tmp_str[include_indexes_sorted[i]] != 'G') {
+            tmp_str[include_indexes_sorted[i]] = next_base[tmp_str[include_indexes_sorted[i]]];
+            for (auto u = 0u; u < i; ++u) tmp_str[include_indexes_sorted[u]] = 'A';
             break;
           }
         }
@@ -129,11 +131,17 @@ void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
 }
 
 void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, int tail_len, int max_mismatches) {
-  char tail_rc[max_tail_len + 1];   // reverse complement of the tail
-  int hash_val;
+  //char tail_rc[max_tail_len + 1];   // reverse complement of the tail
+  std::string primer;
+  std::string tail;
+  std::string tail_rc;
   std::set<std::string> similar_sequences;
+  int hash_val;
   for (int i = 0; i < number_of_primers; ++i) {
-    ReverseComplement(tail_rc, primers[i] + strlen(primers[i]) - tail_len);
+    //ReverseComplement(tail_rc, primers[i] + strlen(primers[i]) - tail_len);
+    primer = primers[i];
+    tail = primer.substr(primer_len - tail_len, tail_len);
+    tail_rc = ReverseComplement(tail);
     similar_sequences = kMismatch(tail_rc, max_mismatches);
     for (std::string sequence: similar_sequences) {
       hash_val = hash(sequence);
@@ -237,8 +245,8 @@ int main(int argc, char* argv[]) {
     if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
     primers[i] = tmp;
   }
-  printf("primer_len = %i\n", primer_len);
   printf("number_of_primers = %i\n", number_of_primers);
+  printf("primer_len = %i\n", primer_len);
 
   // close infile
   fclose(infile);
