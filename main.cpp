@@ -8,11 +8,13 @@
 #include <stdlib.h>
 #include <string.h>     // for strlen(), strcpy()
 
-const char* infile_name = "data/test_data_primers_4000_25.txt";
-const int max_primer_length = 50;
+const char* infile_name = "data/test_data_primers_10000_25.txt";
+const int max_primer_len = 50;
 const int max_number_of_primers = 10000;
+const int primer_len = 25;
 const int number_of_bases = 4;
-const int max_tail_len = 10;
+const int min_tail_len = 5;
+const int max_tail_len = 7;
 const int hash_base = 4;
 const int hash_table_size = pow(hash_base, max_tail_len);
 
@@ -29,7 +31,7 @@ std::map<char, int> base_map = {{'A', 0}, {'T', 1}, {'C', 2}, {'G', 3}};
 int hash(char* str) {
   int val = 0;
   for (int i = 0; str[i] != '\0'; ++i) val += pow(hash_base, i) * base_map[str[i]];
-  val %= hash_table_size;
+  if (val >= hash_table_size) printf("hashing error, val >= hash_table_size");
   return val;
 }
 
@@ -112,7 +114,7 @@ std::set<std::string> kMismatch(char* input_string, int max_mismatches) {
 void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
   int count, max_count = 0, total_count = 0;
   node_t* tmp_node_ptr;
-  for (int i = 0; i < hash_table_size; ++i) {
+  for (auto i = 0; i < hash_table_size; ++i) {
     count = 0;
     tmp_node_ptr = hash_table[i];
     while (tmp_node_ptr != NULL) {
@@ -154,7 +156,7 @@ void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, i
 void ClearHashTable(node** hash_table, int hash_table_size) {
   node_t* node_ptr_1;
   node_t* node_ptr_2;
-  for (int i = 0; i < hash_table_size; ++i) {
+  for (auto i = 0; i < hash_table_size; ++i) {
     node_ptr_1 = hash_table[i];
     while (node_ptr_1 != NULL) {
       node_ptr_2 = node_ptr_1;
@@ -184,7 +186,7 @@ void PrintHitStatistics(std::vector<std::vector<int>> hit, int number_of_primers
   //printf("the max_hits for any primer = %i, for primer %i\n", max_hits, max_hits_index);
   //printf("the avg_hits for each primer = %f\n", avg_hits);
   //printf("the avg percentage hits for each primer = %f%%\n", 100*avg_hits/number_of_primers);
-  printf(" %f", avg_hits/number_of_primers);
+  printf(" %-12f|", avg_hits/number_of_primers);
 }
 
 std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers, node_t** hash_table, int tail_len) {
@@ -193,7 +195,7 @@ std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers,
   std::vector<int> zero_vect(number_of_primers, 0);
   for (int i = 0; i < number_of_primers; ++i) hit.push_back(zero_vect);
   
-  char tmp_primer[max_primer_length + 1];
+  char tmp_primer[max_primer_len + 1];
   node_t* tmp_node_ptr;
   for (int i = 0; i < number_of_primers; ++i) {
     strcpy(tmp_primer, primers[i]);
@@ -213,6 +215,10 @@ std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers,
   return hit;
 }
 
+double P_substring(int substring_len, int target_len) {
+  return (target_len - substring_len + 1) * pow(1.0/number_of_bases, substring_len);
+}
+
 int main(int argc, char* argv[]) {
   // open file
   FILE* infile = fopen(infile_name, "r");
@@ -230,8 +236,8 @@ int main(int argc, char* argv[]) {
   printf("number_of_primers = %i\n", number_of_primers);
   char *tmp;
   for (int i = 0; i < number_of_primers; ++i) {
-    tmp = (char*) malloc(1 + max_primer_length * sizeof(char));
-    fgets(tmp, max_primer_length, infile);
+    tmp = (char*) malloc(1 + max_primer_len * sizeof(char));
+    fgets(tmp, max_primer_len, infile);
     if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
     primers[i] = tmp;
   }
@@ -241,26 +247,27 @@ int main(int argc, char* argv[]) {
 
   // create hash table
   node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
-  for (int i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
+  for (auto i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
 
   std::vector<std::vector<int>> hit;
-  printf("-----------+--------+-----------+------------\n");
-  printf("max        | tail   | total     | actual     \n");
-  printf("mismatches | length | entries   | hit        \n");
-  printf("           |        | in        | probability\n");
-  printf("           |        | hashtable |            \n");
-  printf("-----------+--------+-----------+------------\n");
-  for (auto tail_len = 5; tail_len <= 10; ++tail_len) {
-    for (auto max_mismatches = 0; max_mismatches < 4; ++max_mismatches) {
-      printf(" %-10i| %-7i|", max_mismatches, tail_len);
+  printf("+------------+--------+-----------+-------------+-------------+\n");
+  printf("| max        | tail   | total     | actual      | expected    |\n");
+  printf("| mismatches | length | entries   | hit         | hit         |\n");
+  printf("|            |        | in        | probability | probability |\n");
+  printf("|            |        | hashtable |             |             |\n");
+  printf("+------------+--------+-----------+-------------+-------------+\n");
+  for (auto tail_len = min_tail_len; tail_len <= max_tail_len; ++tail_len) {
+    for (auto max_mismatches = 0; max_mismatches < 2; ++max_mismatches) {
+      printf("| %-11i| %-7i|", max_mismatches, tail_len);
       LoadHashTable(hash_table, primers, number_of_primers, tail_len, max_mismatches);
       PrintHashTableStatistics(hash_table, hash_table_size);
       hit.clear();
       hit = SlideWindow(primers, number_of_primers, hash_table, tail_len);
       PrintHitStatistics(hit, number_of_primers);
       ClearHashTable(hash_table, hash_table_size);
+      if (max_mismatches == 0) printf(" %-12f|", P_substring(tail_len, primer_len));
       printf("\n");
-      printf("-----------+--------+-----------+------------\n");
+      printf("+------------+--------+-----------+-------------+-------------+\n");
     }
   }
 
