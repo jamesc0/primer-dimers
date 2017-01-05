@@ -9,12 +9,11 @@
 #include <string.h>     // for strlen(), strcpy()
 
 const char* infile_name = "data/test_data_primers_10000_25.txt";
-const int max_primer_len = 50;
 const int max_number_of_primers = 10000;
 const int primer_len = 25;
 const int number_of_bases = 4;
 const int min_tail_len = 5;
-const int max_tail_len = 7;
+const int max_tail_len = 10;
 const int hash_base = 4;
 const int hash_table_size = pow(hash_base, max_tail_len);
 
@@ -194,8 +193,7 @@ std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers,
   std::vector<std::vector<int>> hit;
   std::vector<int> zero_vect(number_of_primers, 0);
   for (int i = 0; i < number_of_primers; ++i) hit.push_back(zero_vect);
-  
-  char tmp_primer[max_primer_len + 1];
+    char tmp_primer[primer_len + 1];
   node_t* tmp_node_ptr;
   for (int i = 0; i < number_of_primers; ++i) {
     strcpy(tmp_primer, primers[i]);
@@ -203,6 +201,7 @@ std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers,
     window = tmp_primer + strlen(tmp_primer) - tail_len;
     //printf("%s\n", window);
     for (; window != tmp_primer; --window) {
+      if (window == tmp_primer) break;
       //printf("%s\n", window);
       tmp_node_ptr = hash_table[hash(window)];
       while(tmp_node_ptr != NULL) {
@@ -233,14 +232,16 @@ int main(int argc, char* argv[]) {
   int number_of_primers;
   char **primers = (char**) malloc(max_number_of_primers * sizeof(char*));
   fscanf(infile, "%d\n", &number_of_primers);
-  printf("number_of_primers = %i\n", number_of_primers);
+  
   char *tmp;
   for (int i = 0; i < number_of_primers; ++i) {
-    tmp = (char*) malloc(1 + max_primer_len * sizeof(char));
-    fgets(tmp, max_primer_len, infile);
+    tmp = (char*) malloc(1 + primer_len * sizeof(char));
+    fgets(tmp, primer_len+2, infile);
     if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
     primers[i] = tmp;
   }
+  printf("primer_len = %i\n", primer_len);
+  printf("number_of_primers = %i\n", number_of_primers);
 
   // close infile
   fclose(infile);
@@ -248,16 +249,17 @@ int main(int argc, char* argv[]) {
   // create hash table
   node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
   for (auto i = 0; i < hash_table_size; ++i) hash_table[i] = NULL;
-
-  std::vector<std::vector<int>> hit;
+  
+  // test probabilies for different tail_len and max_mismatches
   printf("+------------+--------+-----------+-------------+-------------+\n");
   printf("| max        | tail   | total     | actual      | expected    |\n");
   printf("| mismatches | length | entries   | hit         | hit         |\n");
   printf("|            |        | in        | probability | probability |\n");
   printf("|            |        | hashtable |             |             |\n");
   printf("+------------+--------+-----------+-------------+-------------+\n");
+  std::vector<std::vector<int>> hit;
   for (auto tail_len = min_tail_len; tail_len <= max_tail_len; ++tail_len) {
-    for (auto max_mismatches = 0; max_mismatches < 2; ++max_mismatches) {
+    for (auto max_mismatches = 0; max_mismatches <= 3; ++max_mismatches) {
       printf("| %-11i| %-7i|", max_mismatches, tail_len);
       LoadHashTable(hash_table, primers, number_of_primers, tail_len, max_mismatches);
       PrintHashTableStatistics(hash_table, hash_table_size);
