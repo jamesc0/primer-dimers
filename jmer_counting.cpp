@@ -48,6 +48,26 @@ std::string ReverseComplement(std::string src) {
   return ret_str;
 }
 
+
+void LoadJmerHashTable(std::array<std::vector<bool>, hash_table_size> &jmer_hash_table, char** primers, int number_of_primers, int j) {
+  std::string primer;
+  std::string jmer;
+  char tmp_primer[primer_len + 1];
+  int hash_val;
+  for (int i = 0; i < number_of_primers; ++i) {
+    strcpy(tmp_primer, primers[i]);
+    char* jmer = tmp_primer + strlen(tmp_primer) - j;
+    for (; jmer != tmp_primer; --jmer) {
+      //std::cout << "jmer = " << jmer << '\n';
+      //std::cout << "jmer_rc = " << jmer_rc << '\n';
+      hash_val = hash(jmer);
+      jmer_hash_table[hash_val][i] = 1;
+      tmp_primer[strlen(tmp_primer) - 1] = '\0';
+    }
+  }
+}
+
+
 void LoadJmerRcHashTable(std::array<std::vector<bool>, hash_table_size> &jmer_rc_hash_table, char** primers, int number_of_primers, int j) {
   std::string primer;
   std::string jmer;
@@ -138,19 +158,21 @@ int main(int argc, char* argv[]) {
     jmer_rc_hash_table[i] = zero_vect;
   }
   
+  // load hash tables
+  LoadJmerHashTable(jmer_hash_table, primers, number_of_primers, j);
   LoadJmerRcHashTable(jmer_rc_hash_table, primers, number_of_primers, j);
   
-  // run
-  std::vector<std::vector<int>> hit;
-  
-  /*
-  LoadHashTable(hash_table, primers, number_of_primers, tail_len, max_mismatches);
-  PrintHashTableStatistics(hash_table, hash_table_size);
-  hit.clear();
-  hit = SlideWindow(primers, number_of_primers, hash_table, tail_len);
-  PrintHitStatistics(hit, number_of_primers);
-  ClearHashTable(hash_table, hash_table_size);
-  */
+  // test
+  int count;//, row_count = 0;
+  for (auto i: jmer_rc_hash_table) {
+    count = 0;
+    for (auto j: i) {
+      if (j == true) {
+        ++count;
+      }
+    }
+    //printf("%i\n", count);
+  }
 
   // free memory from input
   for (int i = 0; i < number_of_primers; ++i) free(primers[i]);
