@@ -13,7 +13,7 @@ const char* outfile_name = "data/test_data_primers_4000_25_out.txt";
 const int max_number_of_primers = 4000;
 const int primer_len = 25;
 const int min_tail_len = 5;
-const int max_tail_len = 7;
+const int max_tail_len = 5;
 
 const int number_of_bases = 4;
 const int hash_base = number_of_bases;
@@ -242,7 +242,7 @@ int main(int argc, char* argv[]) {
   
   char *tmp;
   for (int i = 0; i < number_of_primers; ++i) {
-    tmp = (char*) malloc(1 + primer_len * sizeof(char));
+    tmp = (char*) malloc(2 + primer_len * sizeof(char));
     fgets(tmp, primer_len+2, infile);
     if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
     primers[i] = tmp;
@@ -263,7 +263,7 @@ int main(int argc, char* argv[]) {
   printf("+------------+--------+-----------+-------------+-------------+\n");
   std::vector<std::vector<int>> hit;
   for (auto tail_len = min_tail_len; tail_len <= max_tail_len; ++tail_len) {
-    for (auto max_mismatches = 0; max_mismatches <= 3; ++max_mismatches) {
+    for (auto max_mismatches = 0; max_mismatches <= 0; ++max_mismatches) {
       printf("| %-11i| %-7i|", max_mismatches, tail_len);
       LoadHashTable(hash_table, primers, number_of_primers, tail_len, max_mismatches);
       PrintHashTableStatistics(hash_table, hash_table_size);

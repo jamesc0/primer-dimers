@@ -138,10 +138,9 @@ int main(int argc, char* argv[]) {
   int number_of_primers;
   char **primers = (char**) malloc(max_number_of_primers * sizeof(char*));
   fscanf(infile, "%d\n", &number_of_primers);
-  
   char *tmp;
   for (int i = 0; i < number_of_primers; ++i) {
-    tmp = (char*) malloc(1 + primer_len * sizeof(char));
+    tmp = (char*) malloc(2 + primer_len * sizeof(char));
     fgets(tmp, primer_len+2, infile);
     if (tmp[strlen(tmp) - 1] == '\n') tmp[strlen(tmp) - 1] = '\0';
     primers[i] = tmp;
@@ -149,6 +148,7 @@ int main(int argc, char* argv[]) {
   printf("number_of_primers = %i\n", number_of_primers);
   printf("primer_len = %i\n", primer_len);
 
+  /*
   // create hash tables
   std::array<std::vector<bool>, hash_table_size> jmer_hash_table;
   std::array<std::vector<bool>, hash_table_size> jmer_rc_hash_table;
@@ -173,7 +173,7 @@ int main(int argc, char* argv[]) {
     }
     //printf("%i\n", count);
   }
-
+  */
   // free memory from input
   for (int i = 0; i < number_of_primers; ++i) free(primers[i]);
   free(primers);
