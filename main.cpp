@@ -4,18 +4,19 @@
 #include <map>          // for std::map
 #include <math.h>       // for pow()
 #include <set>          // for std::set
-#include <stdio.h>      // for printf, scanf, fscanf
+#include <stdio.h>      // for printf, scanf, fgets
 #include <stdlib.h>
 #include <string.h>     // for strlen(), strcpy()
 
 const char* infile_name = "data/test_data_primers_4000_25.txt";
+const char* outfile_name = "data/test_data_primers_4000_25_out.txt";
 const int max_number_of_primers = 4000;
 const int primer_len = 25;
 const int min_tail_len = 5;
 const int max_tail_len = 7;
 
 const int number_of_bases = 4;
-const int hash_base = 4;
+const int hash_base = number_of_bases;
 const int hash_table_size = pow(hash_base, max_tail_len);
 
 typedef struct node {
@@ -39,7 +40,7 @@ std::string ReverseComplement(std::string src) {
   int len = src.size();
   std::string ret_str = src;
   for (int i = 0; i < len; ++i) {
-	  ret_str[len - 1 - i] = complement_map[src[i]];
+      ret_str[len - 1 - i] = complement_map[src[i]];
   }
   return ret_str;
 }
@@ -78,6 +79,8 @@ std::set<std::set<int>> kSubsets(int n, int k) {
 }
 
 std::set<std::string> kMismatch(std::string input_str, int max_mismatches) {
+  // returns a set of strings which have less than or equal to
+  // max_mismatches with input_str
   std::set<std::string> ret_set;
   int len = input_str.size();
   if (max_mismatches < 0) {
@@ -133,14 +136,12 @@ void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
 }
 
 void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, int tail_len, int max_mismatches) {
-  //char tail_rc[max_tail_len + 1];   // reverse complement of the tail
   std::string primer;
   std::string tail;
   std::string tail_rc;
   std::set<std::string> similar_sequences;
   int hash_val;
   for (int i = 0; i < number_of_primers; ++i) {
-    //ReverseComplement(tail_rc, primers[i] + strlen(primers[i]) - tail_len);
     primer = primers[i];
     tail = primer.substr(primer_len - tail_len, tail_len);
     tail_rc = ReverseComplement(tail);
@@ -200,16 +201,14 @@ std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers,
   std::vector<std::vector<int>> hit;
   std::vector<int> zero_vect(number_of_primers, 0);
   for (int i = 0; i < number_of_primers; ++i) hit.push_back(zero_vect);
+
   char tmp_primer[primer_len + 1];
   node_t* tmp_node_ptr;
   for (int i = 0; i < number_of_primers; ++i) {
     strcpy(tmp_primer, primers[i]);
-    char* window;
-    window = tmp_primer + strlen(tmp_primer) - tail_len;
-    //printf("%s\n", window);
+    char* window = tmp_primer + strlen(tmp_primer) - tail_len;
     for (; window != tmp_primer; --window) {
       if (window == tmp_primer) break;
-      //printf("%s\n", window);
       tmp_node_ptr = hash_table[hash(window)];
       while(tmp_node_ptr != NULL) {
         hit[i][tmp_node_ptr->primer_index] = hit[tmp_node_ptr->primer_index][i] = 1;
@@ -226,10 +225,11 @@ double P_substring(int substring_len, int target_len) {
 }
 
 int main(int argc, char* argv[]) {
-  // open file
+  // open files
   FILE* infile = fopen(infile_name, "r");
+  FILE* outfile = fopen(outfile_name, "w");
   
-  // check if file exists
+  // check if infile exists
   if (infile == NULL) {
     printf("can't open infile\n");
     exit(EXIT_FAILURE);
@@ -249,9 +249,6 @@ int main(int argc, char* argv[]) {
   }
   printf("number_of_primers = %i\n", number_of_primers);
   printf("primer_len = %i\n", primer_len);
-
-  // close infile
-  fclose(infile);
 
   // create hash table
   node_t** hash_table = (node_t**) malloc(hash_table_size * sizeof(node_t*));
@@ -274,7 +271,9 @@ int main(int argc, char* argv[]) {
       hit = SlideWindow(primers, number_of_primers, hash_table, tail_len);
       PrintHitStatistics(hit, number_of_primers);
       ClearHashTable(hash_table, hash_table_size);
-      if (max_mismatches == 0) printf(" %-12f|", P_substring(tail_len, primer_len));
+      if (max_mismatches == 0) {
+        printf(" %-12f|", P_substring(tail_len, primer_len));
+      }
       printf("\n");
       printf("+------------+--------+-----------+-------------+-------------+\n");
     }
@@ -286,6 +285,10 @@ int main(int argc, char* argv[]) {
   // free memory from input
   for (int i = 0; i < number_of_primers; ++i) free(primers[i]);
   free(primers);
+
+  // close files
+  fclose(infile);
+  fclose(outfile);
 
   return 0;
 }
