@@ -11,9 +11,10 @@
 const char* infile_name = "data/test_data_primers_4000_25.txt";
 const int max_number_of_primers = 4000;
 const int primer_len = 25;
-const int number_of_bases = 4;
 const int min_tail_len = 5;
 const int max_tail_len = 7;
+
+const int number_of_bases = 4;
 const int hash_base = 4;
 const int hash_table_size = pow(hash_base, max_tail_len);
 
@@ -88,14 +89,15 @@ std::set<std::string> kMismatch(std::string input_str, int max_mismatches) {
     if (max_mismatches > len) max_mismatches = len;
     std::set<std::set<int>> s = kSubsets(len, max_mismatches);
     std::vector<int> include_indexes_sorted;
-    //char tmp[max_tail_len + 1];
     std::string tmp_str;
     for (std::set<int> include_indexes: s) {
-      //strcpy(tmp, input_string);
       tmp_str = input_str;
       include_indexes_sorted.clear();
       for (int i: include_indexes) include_indexes_sorted.push_back(i);
       std::sort(include_indexes_sorted.begin(), include_indexes_sorted.end());
+      if (include_indexes_sorted[0] == 0) {
+        continue; // the 0th base (the 3' end) must match
+      }
       for (int i: include_indexes_sorted) tmp_str[i] = 'A';
       for (int j = 0; j < pow(number_of_bases, max_mismatches); j++) {
         ret_set.insert(tmp_str);
@@ -198,7 +200,7 @@ std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers,
   std::vector<std::vector<int>> hit;
   std::vector<int> zero_vect(number_of_primers, 0);
   for (int i = 0; i < number_of_primers; ++i) hit.push_back(zero_vect);
-    char tmp_primer[primer_len + 1];
+  char tmp_primer[primer_len + 1];
   node_t* tmp_node_ptr;
   for (int i = 0; i < number_of_primers; ++i) {
     strcpy(tmp_primer, primers[i]);
