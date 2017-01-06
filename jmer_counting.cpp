@@ -43,7 +43,7 @@ std::string ReverseComplement(std::string src) {
   int len = src.size();
   std::string ret_str = src;
   for (int i = 0; i < len; ++i) {
-      ret_str[len - 1 - i] = complement_map[src[i]];
+    ret_str[len - 1 - i] = complement_map[src[i]];
   }
   return ret_str;
 }
@@ -61,12 +61,11 @@ void LoadJmerHashTable(std::array<std::vector<bool>, hash_table_size> &jmer_hash
       //std::cout << "jmer = " << jmer << '\n';
       //std::cout << "jmer_rc = " << jmer_rc << '\n';
       hash_val = hash(jmer);
-      jmer_hash_table[hash_val][i] = 1;
+      jmer_hash_table[hash_val][i] = true;
       tmp_primer[strlen(tmp_primer) - 1] = '\0';
     }
   }
 }
-
 
 void LoadJmerRcHashTable(std::array<std::vector<bool>, hash_table_size> &jmer_rc_hash_table, char** primers, int number_of_primers, int j) {
   std::string primer;
@@ -80,9 +79,8 @@ void LoadJmerRcHashTable(std::array<std::vector<bool>, hash_table_size> &jmer_rc
     for (; jmer != tmp_primer; --jmer) {
       //std::cout << "jmer = " << jmer << '\n';
       jmer_rc = ReverseComplement(jmer);
-      //std::cout << "jmer_rc = " << jmer_rc << '\n';
       hash_val = hash(jmer_rc);
-      jmer_rc_hash_table[hash_val][i] = 1;
+      jmer_rc_hash_table[hash_val][i] = true;
       tmp_primer[strlen(tmp_primer) - 1] = '\0';
     }
   }
@@ -148,7 +146,6 @@ int main(int argc, char* argv[]) {
   printf("number_of_primers = %i\n", number_of_primers);
   printf("primer_len = %i\n", primer_len);
 
-  /*
   // create hash tables
   std::array<std::vector<bool>, hash_table_size> jmer_hash_table;
   std::array<std::vector<bool>, hash_table_size> jmer_rc_hash_table;
@@ -161,19 +158,32 @@ int main(int argc, char* argv[]) {
   // load hash tables
   LoadJmerHashTable(jmer_hash_table, primers, number_of_primers, j);
   LoadJmerRcHashTable(jmer_rc_hash_table, primers, number_of_primers, j);
-  
-  // test
-  int count;//, row_count = 0;
-  for (auto i: jmer_rc_hash_table) {
-    count = 0;
-    for (auto j: i) {
-      if (j == true) {
-        ++count;
+
+  // create vector of ints
+  std::vector<std::vector<int>> hit;
+  std::vector<int> zero_int_vect (number_of_primers, 0);
+  for (auto i = 0; i < number_of_primers; ++i) hit.push_back(zero_int_vect);
+
+  // start calculating
+  int matches;
+  std::vector<int> all_matches;
+  for (auto i = 0; i < number_of_primers; ++i) {
+    if (i % 100 == 0) printf("%i\n", i);
+    for (auto k = i; k < number_of_primers; ++k) {
+      matches = 0;
+      for (auto p = 0; p < hash_table_size; ++p) {
+        if (jmer_rc_hash_table[p][i] == true && 
+            jmer_hash_table[p][k] == true) {
+          ++matches;
+        }
       }
+      hit[i][k] = hit[k][i] = matches;
+      all_matches.push_back(matches);
+      if (i % 500 == 0 && k % 500 == 0) printf("matches = %i\n", matches);
     }
-    //printf("%i\n", count);
   }
-  */
+  printf("avg matches = %f\n", std::accumulate(all_matches.begin(), all_matches.end(), 0ull)/(double)all_matches.size());
+
   // free memory from input
   for (int i = 0; i < number_of_primers; ++i) free(primers[i]);
   free(primers);
