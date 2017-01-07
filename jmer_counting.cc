@@ -189,7 +189,9 @@ int main(int argc, char* argv[]) {
     ++stats[match];
   }
   for (auto i = 0u; i < stats.size(); ++i) {
-    if (stats[i] != 0) printf("matches = %-10i, occurrences = %-10i, prob = %-10f\n", i, stats[i], stats[i]/(double)all_matches.size());
+    if (stats[i] != 0) {
+      printf("matches = %-10i, occurrences = %-10i, prob = %-10f\n", i, stats[i], stats[i]/(double)all_matches.size());
+    }
   }
 
   // free memory from input
