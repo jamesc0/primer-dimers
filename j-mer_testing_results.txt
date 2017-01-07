@@ -1,0 +1,64 @@
+james@james-desktop:~/Downloads/summertechlive/primer-dimers$ ./jmer_counting
+number_of_primers = 1000
+primer_len = 25
+j (the length of a j-mer) = 4
+avg matches = 1.597149
+all_matches.size() = 500500.000000
+matches = 0         , occurrences = 130696    , prob = 0.261131  
+matches = 1         , occurrences = 143537    , prob = 0.286787  
+matches = 2         , occurrences = 108469    , prob = 0.216721  
+matches = 3         , occurrences = 64454     , prob = 0.128779  
+matches = 4         , occurrences = 32193     , prob = 0.064322  
+matches = 5         , occurrences = 13559     , prob = 0.027091  
+matches = 6         , occurrences = 5176      , prob = 0.010342  
+matches = 7         , occurrences = 1704      , prob = 0.003405  
+matches = 8         , occurrences = 501       , prob = 0.001001  
+matches = 9         , occurrences = 152       , prob = 0.000304  
+matches = 10        , occurrences = 44        , prob = 0.000088  
+matches = 11        , occurrences = 12        , prob = 0.000024  
+matches = 12        , occurrences = 2         , prob = 0.000004  
+matches = 13        , occurrences = 1         , prob = 0.000002  
+james@james-desktop:~/Downloads/summertechlive/primer-dimers$ make jmer_counting
+g++  -std=c++11 -Wall -lm   jmer_counting.cc   -o jmer_counting
+james@james-desktop:~/Downloads/summertechlive/primer-dimers$ ./jmer_counting
+number_of_primers = 1000
+primer_len = 25
+j (the length of a j-mer) = 3
+avg matches = 5.523840
+all_matches.size() = 500500.000000
+matches = 0         , occurrences = 1537      , prob = 0.003071  
+matches = 1         , occurrences = 8607      , prob = 0.017197  
+matches = 2         , occurrences = 25175     , prob = 0.050300  
+matches = 3         , occurrences = 50418     , prob = 0.100735  
+matches = 4         , occurrences = 76573     , prob = 0.152993  
+matches = 5         , occurrences = 91293     , prob = 0.182404  
+matches = 6         , occurrences = 89347     , prob = 0.178515  
+matches = 7         , occurrences = 70284     , prob = 0.140428  
+matches = 8         , occurrences = 46090     , prob = 0.092088  
+matches = 9         , occurrences = 24496     , prob = 0.048943  
+matches = 10        , occurrences = 11052     , prob = 0.022082  
+matches = 11        , occurrences = 4075      , prob = 0.008142  
+matches = 12        , occurrences = 1171      , prob = 0.002340  
+matches = 13        , occurrences = 297       , prob = 0.000593  
+matches = 14        , occurrences = 74        , prob = 0.000148  
+matches = 15        , occurrences = 10        , prob = 0.000020  
+matches = 16        , occurrences = 1         , prob = 0.000002  
+james@james-desktop:~/Downloads/summertechlive/primer-dimers$ make jmer_counting
+g++  -std=c++11 -Wall -lm   jmer_counting.cc   -o jmer_counting
+james@james-desktop:~/Downloads/summertechlive/primer-dimers$ ./jmer_counting
+number_of_primers = 1000
+primer_len = 25
+j (the length of a j-mer) = 5
+avg matches = 0.384713
+all_matches.size() = 500500.000000
+matches = 0         , occurrences = 369656    , prob = 0.738573  
+matches = 1         , occurrences = 87630     , prob = 0.175085  
+matches = 2         , occurrences = 30048     , prob = 0.060036  
+matches = 3         , occurrences = 9240      , prob = 0.018462  
+matches = 4         , occurrences = 2913      , prob = 0.005820  
+matches = 5         , occurrences = 726       , prob = 0.001451  
+matches = 6         , occurrences = 219       , prob = 0.000438  
+matches = 7         , occurrences = 48        , prob = 0.000096  
+matches = 8         , occurrences = 13        , prob = 0.000026  
+matches = 9         , occurrences = 3         , prob = 0.000006  
+matches = 10        , occurrences = 4         , prob = 0.000008

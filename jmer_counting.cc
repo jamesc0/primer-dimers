@@ -9,11 +9,11 @@
 #include <stdlib.h>
 #include <string.h>     // for strlen(), strcpy()
 
-const char* infile_name = "data/test_data_primers_4000_25.txt";
-const char* outfile_name = "data/test_data_primers_4000_25_jmer_out.txt";
-const int max_number_of_primers = 4000;
+const char* infile_name = "data/test_data_primers_1000_25.txt";
+const char* outfile_name = "data/test_data_primers_1000_25_jmer_out.txt";
+const int max_number_of_primers = 1000;
 const int primer_len = 25;
-const int j = 4; // the length of a j-mer
+const int j = 5; // the length of a j-mer
 
 const int number_of_bases = 4;
 const int hash_base = number_of_bases;
@@ -40,10 +40,9 @@ int hash(std::string str) {
 }
 
 std::string ReverseComplement(std::string src) {
-  int len = src.size();
-  std::string ret_str = src;
-  for (int i = 0; i < len; ++i) {
-    ret_str[len - 1 - i] = complement_map[src[i]];
+  std::string ret_str;// = src;
+  for (int i = src.size() - 1; i >= 0; --i) {
+    ret_str.append(1, complement_map[src[i]]);
   }
   return ret_str;
 }
@@ -145,6 +144,7 @@ int main(int argc, char* argv[]) {
   }
   printf("number_of_primers = %i\n", number_of_primers);
   printf("primer_len = %i\n", primer_len);
+  printf("j (the length of a j-mer) = %i\n", j);
 
   // create hash tables
   std::array<std::vector<bool>, hash_table_size> jmer_hash_table;
@@ -168,7 +168,7 @@ int main(int argc, char* argv[]) {
   int matches;
   std::vector<int> all_matches;
   for (auto i = 0; i < number_of_primers; ++i) {
-    if (i % 100 == 0) printf("%i\n", i);
+    //if (i % 100 == 0) printf("%i\n", i);
     for (auto k = i; k < number_of_primers; ++k) {
       matches = 0;
       for (auto p = 0; p < hash_table_size; ++p) {
@@ -179,10 +179,18 @@ int main(int argc, char* argv[]) {
       }
       hit[i][k] = hit[k][i] = matches;
       all_matches.push_back(matches);
-      if (i % 500 == 0 && k % 500 == 0) printf("matches = %i\n", matches);
+      //if (i % 500 == 0 && k % 500 == 0) printf("matches = %i\n", matches);
     }
   }
   printf("avg matches = %f\n", std::accumulate(all_matches.begin(), all_matches.end(), 0ull)/(double)all_matches.size());
+  printf("all_matches.size() = %f\n", (double)all_matches.size());
+  std::vector<int> stats(hash_table_size, 0);
+  for (int match: all_matches) {
+    ++stats[match];
+  }
+  for (auto i = 0u; i < stats.size(); ++i) {
+    if (stats[i] != 0) printf("matches = %-10i, occurrences = %-10i, prob = %-10f\n", i, stats[i], stats[i]/(double)all_matches.size());
+  }
 
   // free memory from input
   for (int i = 0; i < number_of_primers; ++i) free(primers[i]);

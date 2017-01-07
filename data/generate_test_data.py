@@ -1,7 +1,7 @@
 import random
 import time
 
-number_of_primers =15000
+number_of_primers =1000
 primer_length = 25
 
 outfile_name = "test_data_primers_{0}_{1}.txt".format(number_of_primers, primer_length)
