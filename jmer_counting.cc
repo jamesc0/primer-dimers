@@ -9,9 +9,9 @@
 #include <stdlib.h>
 #include <string.h>     // for strlen(), strcpy()
 
-const char* infile_name = "data/test_data_primers_1000_25.txt";
-const char* outfile_name = "data/test_data_primers_1000_25_jmer_out.txt";
-const int max_number_of_primers = 1000;
+const char* infile_name = "data/test_data_primers_4000_25.txt";
+const char* outfile_name = "data/test_data_primers_4000_25_jmer_out.txt";
+const int max_number_of_primers = 4000;
 const int primer_len = 25;
 const int j = 5; // the length of a j-mer
 
