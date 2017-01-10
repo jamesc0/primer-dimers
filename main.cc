@@ -13,24 +13,14 @@
 
 const std::string input_file_name = "data/Fergus26genes_05may15_idt.txt";
 const int tail_len = 5;
-const int mismatches = 1;
-
-const int max_number_of_primers = 5000;
-
-
-
-const int primer_len = 25;
-const int min_tail_len = 5;
-const int max_tail_len = 12;
-
+const int max_mismatches = 1;
 const int number_of_bases = 4;
 const int hash_base = number_of_bases;
-const int hash_table_size = pow(hash_base, max_tail_len);
 
 class PrimerClass {
 	std::string name_;
   std::string sequence_;
-public:
+ public:
   void SetName(std::string str) {
     name_ = str;
   }
@@ -62,7 +52,6 @@ std::map<char, int> base_map = {{'A', 0}, {'T', 1}, {'C', 2}, {'G', 3}};
 int hash(std::string str) {
   int ret_val = 0;
   for (auto i = 0u; i < str.size(); ++i) ret_val += pow(hash_base, i) * base_map[str[i]];
-  if (ret_val >= hash_table_size) printf("hashing error, ret_val >= hash_table_size");
   return ret_val;
 }
 
@@ -153,7 +142,7 @@ void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
   for (auto i = 0; i < hash_table_size; ++i) {
     count = 0;
     tmp_node_ptr = hash_table[i];
-    while (tmp_node_ptr != NULL) {
+    while (tmp_node_ptr != nullptr) {
       ++count;
       tmp_node_ptr = tmp_node_ptr->next;
     }
@@ -163,46 +152,6 @@ void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
   //printf("There are %i total entries in the hash table\n", total_count);
   //printf("The most entries in one index is %i\n", max_count);
   printf(" %-10i|", total_count);
-}
-
-void LoadHashTable(node_t** hash_table, char** primers, int number_of_primers, int tail_len, int max_mismatches) {
-  std::string primer;
-  std::string tail;
-  std::string tail_rc;
-  std::set<std::string> similar_sequences;
-  int hash_val;
-  for (int i = 0; i < number_of_primers; ++i) {
-    primer = primers[i];
-    tail = primer.substr(primer_len - tail_len, tail_len);
-    tail_rc = ReverseComplement(tail);
-    similar_sequences = kMismatch(tail_rc, max_mismatches);
-    for (std::string sequence: similar_sequences) {
-      hash_val = hash(sequence);
-      node_t* tmp_node_ptr = (node_t*) malloc(sizeof(node_t));
-      tmp_node_ptr->primer_index = i;
-      if (hash_table[hash_val] == NULL) {
-        tmp_node_ptr->next = NULL;
-      } else {
-        tmp_node_ptr->next = hash_table[hash_val];
-      }
-      hash_table[hash_val] = tmp_node_ptr;
-    }
-  }
-}
-
-void ClearHashTable(node** hash_table, int hash_table_size) {
-  node_t* node_ptr_1;
-  node_t* node_ptr_2;
-  for (auto i = 0; i < hash_table_size; ++i) {
-    node_ptr_1 = hash_table[i];
-    while (node_ptr_1 != NULL) {
-      node_ptr_2 = node_ptr_1;
-      node_ptr_1 = node_ptr_1->next;
-      free(node_ptr_2);
-      node_ptr_2 = NULL;
-    }
-    hash_table[i] = NULL;
-  }
 }
 
 void PrintHitStatistics(std::vector<std::vector<int>> hit, int number_of_primers) {
@@ -226,34 +175,6 @@ void PrintHitStatistics(std::vector<std::vector<int>> hit, int number_of_primers
   printf(" %-12f|", avg_hits/number_of_primers);
 }
 
-std::vector<std::vector<int>> SlideWindow(char** primers, int number_of_primers, node_t** hash_table, int tail_len) {
-  // initialise hit vector
-  std::vector<std::vector<int>> hit;
-  std::vector<int> zero_vect(number_of_primers, 0);
-  for (int i = 0; i < number_of_primers; ++i) hit.push_back(zero_vect);
-
-  char tmp_primer[primer_len + 1];
-  node_t* tmp_node_ptr;
-  for (int i = 0; i < number_of_primers; ++i) {
-    strcpy(tmp_primer, primers[i]);
-    char* window = tmp_primer + strlen(tmp_primer) - tail_len;
-    for (; window != tmp_primer; --window) {
-      if (window == tmp_primer) break;
-      tmp_node_ptr = hash_table[hash(window)];
-      while(tmp_node_ptr != NULL) {
-        hit[i][tmp_node_ptr->primer_index] = hit[tmp_node_ptr->primer_index][i] = 1;
-        tmp_node_ptr = tmp_node_ptr->next;
-      }
-      tmp_primer[strlen(tmp_primer) - 1] = '\0';
-    }
-  }
-  return hit;
-}
-
-double P_substring(int substring_len, int target_len) {
-  return (target_len - substring_len + 1) * pow(1.0/number_of_bases, substring_len);
-}
-
 std::vector<PrimerClass> ReadInputFile(std::string input_file_name) {
   std::ifstream instream(input_file_name);
   if (!instream.is_open()) {
@@ -266,6 +187,8 @@ std::vector<PrimerClass> ReadInputFile(std::string input_file_name) {
   for (;;) {
     std::getline(instream, name, ',');
     std::getline(instream, sequence, ',');
+    std::transform(sequence.begin(), sequence.end(), sequence.begin(), 
+      ::toupper);
     instream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
     if (instream.eof()) {
       break;
@@ -280,8 +203,99 @@ std::vector<PrimerClass> ReadInputFile(std::string input_file_name) {
   return primers;
 }
 
-int main(int argc, char* argv[]) {
-  ReadInputFile(input_file_name);
+std::vector<node_t*> LoadTable(std::vector<PrimerClass> primers, 
+    int tail_len, int max_mismatches) {
+  std::vector<node_t*> table;
+  for (int i = 0; i < pow(number_of_bases, tail_len); ++i) table.push_back(nullptr);
+  std::string primer;
+  std::string tail;
+  std::string tail_rc;
+  std::set<std::string> similar_sequences;
+  int hash_val;
+  int primer_len;
+  for (int i = 0; i < static_cast<int>(primers.size()); ++i) {
+    primer = primers[i].GetSequence();
+    primer_len = primer.size();
+    tail = primer.substr(primer_len - tail_len, tail_len);
+    tail_rc = ReverseComplement(tail);
+    similar_sequences = kMismatch(tail_rc, max_mismatches);
+    for (std::string sequence: similar_sequences) {
+      hash_val = hash(sequence);
+      node_t* tmp_node_ptr = (node_t*) malloc(sizeof(node_t));
+      tmp_node_ptr->primer_index = i;
+      if (table[hash_val] == nullptr) {
+        tmp_node_ptr->next = nullptr;
+      } else {
+        tmp_node_ptr->next = table[hash_val];
+      }
+      table[hash_val] = tmp_node_ptr;
+    }
+  }
+  return table;
+}
 
+std::vector<std::vector<int>> MatchTails(std::vector<PrimerClass> primers, 
+    int tail_len, int max_mismatches) {
+  std::vector<std::vector<int>> hit;
+  std::vector<node_t*> table = LoadTable(primers, tail_len, max_mismatches);
+  std::vector<int> zero_vect(primers.size(), 0);
+  for (auto i = 0u; i < primers.size(); ++i) hit.push_back(zero_vect);
+  std::string tmp_primer;
+  std::string window;
+  node_t* tmp_node_ptr;
+  for (int i = 0; i < static_cast<int>(primers.size()); ++i) {
+    tmp_primer = primers[i].GetSequence();
+    for (int start_index = 0; 
+        start_index + tail_len != static_cast<int>(tmp_primer.size());
+        ++start_index) {
+      window = tmp_primer.substr(start_index, tail_len);
+      tmp_node_ptr = table[hash(window)];
+      while(tmp_node_ptr != nullptr) {
+        hit[i][tmp_node_ptr->primer_index] = 1;
+        hit[tmp_node_ptr->primer_index][i] = 1;
+        tmp_node_ptr = tmp_node_ptr->next;
+      }
+    }
+  }
+  return hit;
+}
+
+/*
+std::vector<std::vector<bool> LoadJmerHashTable(
+    std::array<std::vector<bool>, hash_table_size> &jmer_rc_hash_table, 
+    char** primers, int number_of_primers, int j, bool rc = false) {
+  std::string primer;
+  std::string jmer;
+  std::string jmer_rc;
+  char tmp_primer[primer_len + 1];
+  int hash_val;
+  for (int i = 0; i < number_of_primers; ++i) {
+    strcpy(tmp_primer, primers[i]);
+    char* jmer = tmp_primer + strlen(tmp_primer) - j;
+    for (; jmer != tmp_primer; --jmer) {
+      //std::cout << "jmer = " << jmer << '\n';
+      jmer_rc = ReverseComplement(jmer);
+      hash_val = hash(jmer_rc);
+      jmer_rc_hash_table[hash_val][i] = true;
+      tmp_primer[strlen(tmp_primer) - 1] = '\0';
+    }
+  }
+}
+*/
+
+int main(int argc, char* argv[]) {
+  auto primers = ReadInputFile(input_file_name);
+
+  auto tail_hits = MatchTails(primers, tail_len, max_mismatches);
+  
+  for (int i = 0; i < primers.size()/60; ++i) {
+    for (int j = 0; j < primers.size()/60; ++j) {
+      std::cout << tail_hits[i][j] << ' ';
+    }
+    std::cout << '\n';
+  }
+
+
+  auto jmer_hits = 1;
   return 0;
 }
