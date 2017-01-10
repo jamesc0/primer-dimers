@@ -5,20 +5,23 @@
 
 #include <algorithm>    // for std::accumulate()
 #include <cstring>      // for std::strcpy
-#include <fstream>
+#include <fstream>      // for std::ifstream
 #include <iostream>     // for std::cout
-#include <limits>       // for numericlimits
+#include <limits>       // for std::numericlimits
 #include <map>          // for std::map
 #include <set>          // for std::set
 
-const std::string input_file_name = "data/Fergus26genes_05may15_idt.txt";
-const int tail_len = 5;
-const int max_mismatches = 1;
-const int number_of_bases = 4;
-const int hash_base = number_of_bases;
+const char* input_file_name = "data/Fergus28genes_05may15_idt.txt";
+const unsigned tail_len = 5;
+const unsigned max_mismatches = 1;
+const unsigned j = 5;
+const unsigned minimum_matching_jmers = 2;
+const unsigned minimum_lcs_threshold = 6;
+
+const unsigned number_of_bases = 4;
 
 class PrimerClass {
-	std::string name_;
+  std::string name_;
   std::string sequence_;
  public:
   void SetName(std::string str) {
@@ -49,9 +52,106 @@ std::map<char, char> complement_map = {{'A', 'T'}, {'T', 'A'}, {'C', 'G'}, {'G',
 std::map<char, char> next_base = {{'A', 'T'}, {'T', 'C'}, {'C', 'G'}, {'G', 'A'}};
 std::map<char, int> base_map = {{'A', 0}, {'T', 1}, {'C', 2}, {'G', 3}};
 
+int hash(std::string str);
+std::string ReverseComplement(std::string src);
+std::vector<PrimerClass> ReadInputFile(std::string input_file_name);
+std::set<std::set<int>> kSubsets(int n, int k);
+std::set<std::string> kMismatch(std::string input_str, int max_mismatches);
+std::vector<node_t*> LoadTailTable(std::vector<PrimerClass> primers, int tail_len,
+    int max_mismatches);
+std::vector<std::vector<bool>> MatchTails(std::vector<PrimerClass> primers,
+    int tail_len, int max_mismatches);
+std::vector<std::vector<bool>> LoadJmerTable(std::vector<PrimerClass> primers,
+    unsigned j, bool rc = false);
+std::vector<std::vector<unsigned>> MatchJmers(std::vector<PrimerClass> primers,
+    int j);
+unsigned LcsLen(std::string str1, std::string str2);
+
+int main(int argc, char* argv[]) {
+  auto primers = ReadInputFile(input_file_name);
+  
+  // investigate lcs
+  int lcs_len;
+  std::vector<int> all_matches;
+  for (auto i = 0u; i < primers.size()/10; ++i) {
+    for (auto j = 0u; j < primers.size()/10; ++j) {
+      lcs_len = LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence());
+      all_matches.push_back(lcs_len);
+    }
+  }
+  printf("========================================\n");
+  printf("lcs statistics =========================\n");
+  printf("avg matches = %f\n", std::accumulate(all_matches.begin(), all_matches.end(), 0ull)/(double)all_matches.size());
+  printf("all_matches.size() = %f\n", (double)all_matches.size());
+  std::vector<int> stats(100000, 0);
+  for (int match : all_matches) {
+    ++stats[match];
+  }
+  for (auto i = 0u; i < stats.size(); ++i) {
+    if (stats[i] != 0) {
+      printf("matches = %-10i, occurrences = %-10i, prob = %-10f\n", i, stats[i], stats[i]/(double)all_matches.size());
+    }
+  }
+  printf("========================================\n");
+
+  auto tail_hits = MatchTails(primers, tail_len, max_mismatches);
+  auto jmer_hits = MatchJmers(primers, j);
+  
+  // investigate all conditions
+  unsigned sample_size = std::min(1000u, static_cast<unsigned>(primers.size()));
+  unsigned tail_count = 0;
+  unsigned jmer_count = 0;
+  unsigned lcs_count = 0;
+  unsigned all_count = 0;
+  unsigned conditions_met;
+  for (unsigned i = 0; i < sample_size; ++i) {
+    for (unsigned j = 0; j < sample_size; ++j) {
+      conditions_met = 0;
+      if (tail_hits[i][j]) {
+        ++tail_count;
+        ++conditions_met;
+      }
+      if (jmer_hits[i][j] >= minimum_matching_jmers) {
+        ++jmer_count;
+        ++conditions_met;
+      }
+      if (LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence()) >= minimum_lcs_threshold) {
+        ++lcs_count;
+        ++conditions_met;
+      }
+      if (conditions_met == 3) {
+        ++all_count;
+      }
+    }
+  }
+  std::cout << "proportion of pairs in small sample successful for tail: " << (double)tail_count / (sample_size * sample_size) << '\n';
+  std::cout << "proportion of pairs in small sample successful for jmer: " << (double)jmer_count / (sample_size * sample_size) << '\n';
+  std::cout << "proportion of pairs in small sample successful for all: " << (double)all_count / (sample_size * sample_size) << '\n';
+
+  // final results
+  /*
+  count = 0;
+  for (auto i = 0u; i < primers.size(); ++i) {
+    for (auto j = 0u; j < primers.size(); ++j) {
+      if (!tail_hits[i][j]) continue;
+      if (jmer_hits[i][j] < minimum_matching_jmers) continue;
+      if (LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence()) < minimum_lcs_threshold) continue;
+      ++count;
+      //if (count % 100 == 0) std::cout << "count = " << count << '\n';
+    }
+  }
+  std::cout << count << '\n';
+  std::cout << (double)count / (primers.size() * primers.size()) << '\n';
+  */
+
+  return 0;
+}
+
 int hash(std::string str) {
   int ret_val = 0;
-  for (auto i = 0u; i < str.size(); ++i) ret_val += pow(hash_base, i) * base_map[str[i]];
+  for (auto i = 0u; i < str.size(); ++i) {
+    ret_val += pow(number_of_bases, i) * base_map[str[i]];
+  }
   return ret_val;
 }
 
@@ -64,22 +164,49 @@ std::string ReverseComplement(std::string src) {
   return ret_str;
 }
 
+std::vector<PrimerClass> ReadInputFile(std::string input_file_name) {
+  std::ifstream instream(input_file_name);
+  if (!instream.is_open()) {
+    std::cout << "Could not open input file.\n";
+    std::exit(EXIT_FAILURE);
+  }
+  std::vector<PrimerClass> primers;
+  std::string name;
+  std::string sequence;
+  for (;;) {
+    std::getline(instream, name, ',');
+    std::getline(instream, sequence, ',');
+    std::transform(sequence.begin(), sequence.end(), sequence.begin(),
+      ::toupper);
+    instream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+    if (instream.eof()) {
+      break;
+    } else {
+      PrimerClass primer;
+      primer.SetName(name);
+      primer.SetSequence(sequence);
+      primers.push_back(primer);
+    }
+  }
+  instream.close();
+  return primers;
+}
 std::set<std::set<int>> kSubsets(int n, int k) {
   // returns all k-subsets of {0, 1, ..., n-1}
   if (k < 1) printf("ERROR: in kSubsets k must be >= 1");
   if (k > n) printf("ERROR: in kSubsets k must be <= n");
-  
+
   std::set<std::set<int>> ret_set;
   std::set<int> tmp_set;
   std::vector<int> include_indexes;
   for (int i = 0; i < k; ++i) include_indexes.push_back(i);
 
-  while(1) {
+  while (1) {
     tmp_set.clear();
-    for (int i: include_indexes) tmp_set.insert(i);
+    for (int i : include_indexes) tmp_set.insert(i);
     ret_set.insert(tmp_set);
     if (include_indexes[0] == (n-1)-(k-1)) break;
-    
+
     // update include_indexes
     for (auto i = include_indexes.size() - 1; i >= 0; --i) {
       if (i == include_indexes.size() - 1 && include_indexes[i] < n-1) {
@@ -112,15 +239,15 @@ std::set<std::string> kMismatch(std::string input_str, int max_mismatches) {
     std::set<std::set<int>> s = kSubsets(len, max_mismatches);
     std::vector<int> include_indexes_sorted;
     std::string tmp_str;
-    for (std::set<int> include_indexes: s) {
+    for (std::set<int> include_indexes : s) {
       tmp_str = input_str;
       include_indexes_sorted.clear();
-      for (int i: include_indexes) include_indexes_sorted.push_back(i);
+      for (int i : include_indexes) include_indexes_sorted.push_back(i);
       std::sort(include_indexes_sorted.begin(), include_indexes_sorted.end());
       if (include_indexes_sorted[0] == 0) {
-        continue; // the 0th base (the 3' end) must match
+        continue;  // the 0th base (the 3' end) must match
       }
-      for (int i: include_indexes_sorted) tmp_str[i] = 'A';
+      for (int i : include_indexes_sorted) tmp_str[i] = 'A';
       for (int j = 0; j < pow(number_of_bases, max_mismatches); j++) {
         ret_set.insert(tmp_str);
         for (auto i = 0u; i < include_indexes_sorted.size(); ++i) {
@@ -136,75 +263,8 @@ std::set<std::string> kMismatch(std::string input_str, int max_mismatches) {
   return ret_set;
 }
 
-void PrintHashTableStatistics(node** hash_table, int hash_table_size) {
-  int count, max_count = 0, total_count = 0;
-  node_t* tmp_node_ptr;
-  for (auto i = 0; i < hash_table_size; ++i) {
-    count = 0;
-    tmp_node_ptr = hash_table[i];
-    while (tmp_node_ptr != nullptr) {
-      ++count;
-      tmp_node_ptr = tmp_node_ptr->next;
-    }
-    if (count > max_count) max_count = count;
-    total_count += count;
-  }
-  //printf("There are %i total entries in the hash table\n", total_count);
-  //printf("The most entries in one index is %i\n", max_count);
-  printf(" %-10i|", total_count);
-}
-
-void PrintHitStatistics(std::vector<std::vector<int>> hit, int number_of_primers) {
-  int hits, max_hits = 0, max_hits_index;
-  std::vector<int> all_hits;
-  for (int i = 0; i < number_of_primers; ++i) {
-    hits = 0;
-    for (int j = 0; j < number_of_primers; ++j) {
-      if (hit[i][j]) ++hits;
-    }
-    if (hits > max_hits) {
-      max_hits = hits;
-      max_hits_index = i;
-    }
-    all_hits.push_back(hits);
-  }
-  double avg_hits = std::accumulate(all_hits.begin(), all_hits.end(), 0ull) / (double)all_hits.size();
-  //printf("the max_hits for any primer = %i, for primer %i\n", max_hits, max_hits_index);
-  //printf("the avg_hits for each primer = %f\n", avg_hits);
-  //printf("the avg percentage hits for each primer = %f%%\n", 100*avg_hits/number_of_primers);
-  printf(" %-12f|", avg_hits/number_of_primers);
-}
-
-std::vector<PrimerClass> ReadInputFile(std::string input_file_name) {
-  std::ifstream instream(input_file_name);
-  if (!instream.is_open()) {
-    std::cout << "Could not open input file.\n";
-    std::exit(EXIT_FAILURE);
-  }
-  std::vector<PrimerClass> primers;
-  std::string name;
-  std::string sequence;
-  for (;;) {
-    std::getline(instream, name, ',');
-    std::getline(instream, sequence, ',');
-    std::transform(sequence.begin(), sequence.end(), sequence.begin(), 
-      ::toupper);
-    instream.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-    if (instream.eof()) {
-      break;
-    } else {
-      PrimerClass primer;
-      primer.SetName(name);
-      primer.SetSequence(sequence);
-      primers.push_back(primer);
-    }
-  }
-  instream.close();
-  return primers;
-}
-
-std::vector<node_t*> LoadTable(std::vector<PrimerClass> primers, 
-    int tail_len, int max_mismatches) {
+std::vector<node_t*> LoadTailTable(std::vector<PrimerClass> primers, int tail_len,
+    int max_mismatches) {
   std::vector<node_t*> table;
   for (int i = 0; i < pow(number_of_bases, tail_len); ++i) table.push_back(nullptr);
   std::string primer;
@@ -219,7 +279,7 @@ std::vector<node_t*> LoadTable(std::vector<PrimerClass> primers,
     tail = primer.substr(primer_len - tail_len, tail_len);
     tail_rc = ReverseComplement(tail);
     similar_sequences = kMismatch(tail_rc, max_mismatches);
-    for (std::string sequence: similar_sequences) {
+    for (std::string sequence : similar_sequences) {
       hash_val = hash(sequence);
       node_t* tmp_node_ptr = (node_t*) malloc(sizeof(node_t));
       tmp_node_ptr->primer_index = i;
@@ -234,25 +294,25 @@ std::vector<node_t*> LoadTable(std::vector<PrimerClass> primers,
   return table;
 }
 
-std::vector<std::vector<int>> MatchTails(std::vector<PrimerClass> primers, 
+std::vector<std::vector<bool>> MatchTails(std::vector<PrimerClass> primers,
     int tail_len, int max_mismatches) {
-  std::vector<std::vector<int>> hit;
-  std::vector<node_t*> table = LoadTable(primers, tail_len, max_mismatches);
-  std::vector<int> zero_vect(primers.size(), 0);
-  for (auto i = 0u; i < primers.size(); ++i) hit.push_back(zero_vect);
+  std::vector<std::vector<bool>> hit;
+  std::vector<node_t*> table = LoadTailTable(primers, tail_len, max_mismatches);
+  std::vector<bool> zero_v(primers.size(), false);
+  for (auto i = 0u; i < primers.size(); ++i) hit.push_back(zero_v);
   std::string tmp_primer;
   std::string window;
   node_t* tmp_node_ptr;
-  for (int i = 0; i < static_cast<int>(primers.size()); ++i) {
+  for (unsigned i = 0; i < primers.size(); ++i) {
     tmp_primer = primers[i].GetSequence();
-    for (int start_index = 0; 
-        start_index + tail_len != static_cast<int>(tmp_primer.size());
+    for (unsigned start_index = 0;
+        start_index + tail_len != tmp_primer.size();
         ++start_index) {
       window = tmp_primer.substr(start_index, tail_len);
       tmp_node_ptr = table[hash(window)];
-      while(tmp_node_ptr != nullptr) {
-        hit[i][tmp_node_ptr->primer_index] = 1;
-        hit[tmp_node_ptr->primer_index][i] = 1;
+      while (tmp_node_ptr != nullptr) {
+        hit[i][tmp_node_ptr->primer_index] = true;
+        hit[tmp_node_ptr->primer_index][i] = true;
         tmp_node_ptr = tmp_node_ptr->next;
       }
     }
@@ -260,42 +320,86 @@ std::vector<std::vector<int>> MatchTails(std::vector<PrimerClass> primers,
   return hit;
 }
 
-/*
-std::vector<std::vector<bool> LoadJmerHashTable(
-    std::array<std::vector<bool>, hash_table_size> &jmer_rc_hash_table, 
-    char** primers, int number_of_primers, int j, bool rc = false) {
+std::vector<std::vector<bool>> LoadJmerTable(std::vector<PrimerClass> primers,
+    unsigned j, bool rc) {
+  std::vector<std::vector<bool>> jmer_table;
+  std::vector<bool> false_v(primers.size(), false);
+  for (int i = 0; i < pow(number_of_bases, j); ++i) {
+    jmer_table.push_back(false_v);
+  }
   std::string primer;
   std::string jmer;
-  std::string jmer_rc;
-  char tmp_primer[primer_len + 1];
   int hash_val;
-  for (int i = 0; i < number_of_primers; ++i) {
-    strcpy(tmp_primer, primers[i]);
-    char* jmer = tmp_primer + strlen(tmp_primer) - j;
-    for (; jmer != tmp_primer; --jmer) {
-      //std::cout << "jmer = " << jmer << '\n';
-      jmer_rc = ReverseComplement(jmer);
-      hash_val = hash(jmer_rc);
-      jmer_rc_hash_table[hash_val][i] = true;
-      tmp_primer[strlen(tmp_primer) - 1] = '\0';
+  for (unsigned i = 0; i < primers.size(); ++i) {
+    primer = primers[i].GetSequence();
+    if (rc) primer = ReverseComplement(primer);
+    std::string jmer;
+    for (unsigned start_index = 0; start_index + j != primer.size(); ++start_index) {
+      jmer = primer.substr(start_index, j);
+      hash_val = hash(jmer);
+      jmer_table[hash_val][i] = true;
     }
   }
+  return jmer_table;
 }
-*/
 
-int main(int argc, char* argv[]) {
-  auto primers = ReadInputFile(input_file_name);
-
-  auto tail_hits = MatchTails(primers, tail_len, max_mismatches);
-  
-  for (int i = 0; i < primers.size()/60; ++i) {
-    for (int j = 0; j < primers.size()/60; ++j) {
-      std::cout << tail_hits[i][j] << ' ';
+std::vector<std::vector<unsigned>> MatchJmers(std::vector<PrimerClass> primers,
+    int j) {
+  std::vector<std::vector<unsigned>> hit;
+  auto jmer_table = LoadJmerTable(primers, j, false);
+  auto jmer_rc_table = LoadJmerTable(primers, j, true);
+  std::vector<unsigned> zero_v(primers.size(), 0);
+  for (unsigned i = 0; i < primers.size(); ++i) hit.push_back(zero_v);
+  int matches;
+  std::vector<int> all_matches;
+  for (unsigned i = 0; i < primers.size(); ++i) {
+    if (i%300 == 0) std::cout << i << '\n';
+    for (unsigned k = i; k < primers.size(); ++k) {
+      matches = 0;
+      for (unsigned p = 0; p < jmer_table.size(); ++p) {
+        if (jmer_rc_table[p][i] == true &&
+            jmer_table[p][k] == true) {
+          ++matches;
+        }
+      }
+      hit[i][k] = hit[k][i] = matches;
+      all_matches.push_back(matches);
     }
-    std::cout << '\n';
   }
 
+  printf("avg matches = %f\n", std::accumulate(all_matches.begin(), all_matches.end(), 0ull)/(double)all_matches.size());
+  printf("all_matches.size() = %f\n", (double)all_matches.size());
+  std::vector<int> stats(jmer_table.size(), 0);
+  for (int match : all_matches) {
+    ++stats[match];
+  }
+  for (auto i = 0u; i < stats.size(); ++i) {
+    if (stats[i] != 0) {
+      printf("matches = %-10i, occurrences = %-10i, prob = %-10f\n", i, stats[i], stats[i]/(double)all_matches.size());
+    }
+  }
 
-  auto jmer_hits = 1;
-  return 0;
+  return hit;
+}
+
+unsigned LcsLen(std::string str1, std::string str2) {
+  unsigned lcs_len = 0;
+	unsigned len1 = str1.size();
+  unsigned len2 = str2.size();
+  unsigned rows = len2 + 1;
+  unsigned cols = len1 + 1;
+  std::vector<unsigned> zero_v(cols, 0);
+  std::vector<std::vector<unsigned>> table;
+  for (unsigned row = 0; row < rows; ++row) table.push_back(zero_v);
+  for (unsigned row = 1; row < rows; ++row) {
+    for (unsigned col = 1; col < cols; ++col) {
+      if (str1.at(col-1) == str2.at(row-1)) {
+        table.at(row).at(col) = table.at(row-1).at(col-1)+1;
+        lcs_len = std::max(lcs_len, table.at(row).at(col));
+      } else {
+        table.at(row).at(col) = 0;
+      }
+    }
+  }
+  return lcs_len;
 }
