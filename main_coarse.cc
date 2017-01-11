@@ -11,7 +11,7 @@
 #include <map>          // for std::map
 #include <set>          // for std::set
 
-const char* input_file_name = "data/Fergus_all.txt";
+const char* input_file_name = "data/Fergus129snps_05may15_idt.txt";
 const unsigned tail_len = 5;
 const unsigned max_mismatches = 1;
 const unsigned j = 5;
@@ -372,7 +372,7 @@ std::vector<std::vector<bool>> LoadJmerTable(std::vector<PrimerClass> primers,
     primer = primers[i].GetSequence();
     if (rc) primer = ReverseComplement(primer);
     std::string jmer;
-    for (unsigned start_index = 0; start_index + j != primer.size(); ++start_index) {
+    for (unsigned start_index = 0; start_index + j <= primer.size(); start_index += j) {
       jmer = primer.substr(start_index, j);
       hash_val = hash(jmer);
       jmer_table[hash_val][i] = true;
