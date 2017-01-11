@@ -11,11 +11,11 @@
 #include <map>          // for std::map
 #include <set>          // for std::set
 
-const char* input_file_name = "data/Fergus129snps_05may15_idt.txt";
+const char* input_file_name = "data/Fergus_all.txt";
 const unsigned tail_len = 5;
 const unsigned max_mismatches = 1;
-const unsigned j = 5;
-const unsigned minimum_matching_jmers = 3;
+const unsigned j = 4;
+const unsigned minimum_matching_jmers = 2;
 const unsigned minimum_lcs_threshold = 0;
 
 const unsigned number_of_bases = 4;

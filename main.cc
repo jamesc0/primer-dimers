@@ -11,12 +11,13 @@
 #include <map>          // for std::map
 #include <set>          // for std::set
 
-const char* input_file_name = "data/Fergus_all.txt";
+//const char* input_file_name = "data/Fergus129snps_05may15_idt.txt";
 const unsigned tail_len = 5;
 const unsigned max_mismatches = 1;
 const unsigned j = 5;
-const unsigned minimum_matching_jmers = 3;
+const unsigned minimum_matching_jmers = 2;
 const unsigned minimum_lcs_threshold = 0;
+const bool coarse = true;  // this means that one primer will be parsed 'coarse' and the other not
 
 const unsigned number_of_bases = 4;
 
@@ -62,13 +63,18 @@ std::vector<node_t*> LoadTailTable(std::vector<PrimerClass> primers, int tail_le
 std::vector<std::vector<bool>> MatchTails(std::vector<PrimerClass> primers,
     int tail_len, int max_mismatches);
 std::vector<std::vector<bool>> LoadJmerTable(std::vector<PrimerClass> primers,
-    unsigned j, bool rc = false);
+    unsigned j, bool rc, bool coarse);
 std::vector<std::vector<unsigned>> MatchJmers(std::vector<PrimerClass> primers,
-    int j);
+    int j, bool coarse);
 unsigned LcsLen(std::string str1, std::string str2);
 
 int main(int argc, char* argv[]) {
-	
+  if (argc < 2) {
+    std::cout << "please supply one input argument, the input file path\n";
+  }
+  std::string input_file_name;
+  input_file_name = argv[1];
+
   // print parameters
   printf("========================================\n");
   printf("Parameters =============================\n");
@@ -112,7 +118,7 @@ int main(int argc, char* argv[]) {
   */
   
   auto tail_hits = MatchTails(primers, tail_len, max_mismatches);
-  auto jmer_hits = MatchJmers(primers, j);
+  auto jmer_hits = MatchJmers(primers, j, coarse);
   
   // investigate all conditions
   unsigned sample_size = std::min(1000u, static_cast<unsigned>(primers.size()));
@@ -165,7 +171,7 @@ int main(int argc, char* argv[]) {
       if (jmer_hits[i][j] < minimum_matching_jmers) continue;
       //if (LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence()) < minimum_lcs_threshold) continue;
       if (!found) {
-        std::cout << primers[i].GetName() << " : ";
+        std::cout << '\n' << primers[i].GetName() << " : ";
         std::cout << primers[j].GetName();
         found = true;
       } else {
@@ -174,8 +180,8 @@ int main(int argc, char* argv[]) {
       ++count;
       //if (count % 100 == 0) std::cout << "count = " << count << '\n';
     }
-    std::cout << '\n';
   }
+  printf("\n");
   printf("========================================\n");
   printf("\n");
   
@@ -344,7 +350,7 @@ std::vector<std::vector<bool>> MatchTails(std::vector<PrimerClass> primers,
   for (unsigned i = 0; i < primers.size(); ++i) {
     tmp_primer = primers[i].GetSequence();
     for (unsigned start_index = 0;
-        start_index + tail_len != tmp_primer.size();
+        start_index + tail_len <= tmp_primer.size();
         ++start_index) {
       window = tmp_primer.substr(start_index, tail_len);
       tmp_node_ptr = table[hash(window)];
@@ -359,7 +365,7 @@ std::vector<std::vector<bool>> MatchTails(std::vector<PrimerClass> primers,
 }
 
 std::vector<std::vector<bool>> LoadJmerTable(std::vector<PrimerClass> primers,
-    unsigned j, bool rc) {
+    unsigned j, bool rc, bool coarse) {
   std::vector<std::vector<bool>> jmer_table;
   std::vector<bool> false_v(primers.size(), false);
   for (int i = 0; i < pow(number_of_bases, j); ++i) {
@@ -372,20 +378,25 @@ std::vector<std::vector<bool>> LoadJmerTable(std::vector<PrimerClass> primers,
     primer = primers[i].GetSequence();
     if (rc) primer = ReverseComplement(primer);
     std::string jmer;
-    for (unsigned start_index = 0; start_index + j != primer.size(); ++start_index) {
+    for (unsigned start_index = 0; start_index + j <= primer.size();) {
       jmer = primer.substr(start_index, j);
       hash_val = hash(jmer);
       jmer_table[hash_val][i] = true;
+      if (coarse) {
+        start_index += j;
+      } else {
+        ++start_index;
+      }
     }
   }
   return jmer_table;
 }
 
 std::vector<std::vector<unsigned>> MatchJmers(std::vector<PrimerClass> primers,
-    int j) {
+    int j, bool coarse) {
   std::vector<std::vector<unsigned>> hit;
-  auto jmer_table = LoadJmerTable(primers, j, false);
-  auto jmer_rc_table = LoadJmerTable(primers, j, true);
+  auto jmer_table = LoadJmerTable(primers, j, false, false);
+  auto jmer_rc_table = LoadJmerTable(primers, j, true, coarse);
   std::vector<unsigned> zero_v(primers.size(), 0);
   for (unsigned i = 0; i < primers.size(); ++i) hit.push_back(zero_v);
   int matches;
