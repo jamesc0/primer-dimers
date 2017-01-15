@@ -31,40 +31,52 @@ int DpAlignment(const std::string &seq1, const std::string &seq2) {
   std::vector<std::vector<std::pair<unsigned, char>>> table;
   // char is the direction you follow back to the (0, 0).
   // L is left, U is down, D is diagonal.
+  
+  std::cout << "aligning the following sequences:\n";
+  std::cout << seq1 << '\n' << seq2 << "\n\n";
+  
   unsigned cols = seq1.size() + 1;
   unsigned rows = seq2.size() + 1;
   std::vector<std::pair<unsigned, char>> zero_row(cols, {0, '\0'});
   for (unsigned i = 0; i < rows; ++i) table.push_back(zero_row);
-  for (unsigned i = 0; i < cols; ++i) table.at(0).at(i) = {i, 'L'};
-  for (unsigned i = 0; i < rows; ++i) table.at(i).at(0) = {i, 'U'};
+  for (unsigned i = 0; i < cols; ++i) table.at(0).at(i) = {i, 'U'};
+  for (unsigned i = 0; i < rows; ++i) table.at(i).at(0) = {i, 'L'};
 
   // write table
   unsigned min;
-  for (unsigned i = 1; i < cols; ++i) {
-    for (unsigned j = 1; j < rows; ++j) {
-      if (seq1.at(i - 1) == seq2.at(j - 1)) {
-        table.at(j).at(i) = {table.at(j - 1).at(i - 1).first, 'D'};
-        min = table.at(j).at(i).first;
+  for (unsigned row = 1; row < rows; ++row) {
+    for (unsigned col = 1; col < cols; ++col) {
+      std::cout << "new\n";
+      if (seq1.at(col - 1) == seq2.at(row - 1)) {
+        std::cout << "1\n";
+        table.at(row).at(col) = {table.at(row - 1).at(col - 1).first, 'D'};
+        min = table.at(row).at(col).first;
       } else {
-        table.at(j).at(i) = {table.at(j - 1).at(i - 1).first + 1, 'D'};;
-        min = table.at(j).at(i).first;
+        std::cout << "2\n";
+        table.at(row).at(col) = {table.at(row - 1).at(col - 1).first + 1, 'D'};;
+        min = table.at(row).at(col).first;
       }
-      if (table.at(j - 1).at(i).first + 1 < min) {
-        table.at(j).at(i) = {table.at(j - 1).at(i).first + 1, 'U'};
-        min = table.at(j).at(i).first;
+      if (table.at(row - 1).at(col).first + 1 < min) {
+        std::cout << "val = " << table.at(row - 1).at(col).first + 1 << '\n';
+        std::cout << "3\n";
+        table.at(row).at(col) = {table.at(row - 1).at(col).first + 1, 'U'};
+        min = table.at(row).at(col).first;
       }
-      if (table.at(j).at(i - 1).first + 1 < min) {
-        table.at(j).at(i) = {table.at(j).at(i - 1).first + 1, 'L'};
-        min = table.at(j).at(i).first;
+      if (table.at(row).at(col - 1).first + 1 < min) {
+        std::cout << "val = " << table.at(row).at(col - 1).first + 1 << '\n';
+        std::cout << "4\n";
+        table.at(row).at(col) = {table.at(row).at(col - 1).first + 1, 'L'};
+        min = table.at(row).at(col).first;
       }
     }
   }
 
   // print table
   /*
-  for (unsigned i = 0; i < cols; ++i) {
-    for (unsigned j = 0; j < rows; ++j) {
+  for (unsigned j = 0; j < rows; ++j) {
+    for (unsigned i = 0; i < cols; ++i) {
       printf("%2d ", table.at(j).at(i).first);
+      printf("%c ", table.at(j).at(i).second);
     }
     std::cout << '\n';
   }
@@ -73,12 +85,13 @@ int DpAlignment(const std::string &seq1, const std::string &seq2) {
   // trace path back to origin and visualise
   std::string out_top, out_mid, out_bot;
   for (unsigned col = cols - 1, row = rows - 1; col + row != 0; ) {
+    //std::cout << row << ',' << col << ',' << table.at(row).at(col).second << '\n';
     if (row == 0 || table.at(row).at(col).second == 'L') {
       out_top.append(1, seq1.at(col - 1));
       out_bot.append(1, ' ');
       out_mid.append(1, '-');
       --col;
-    } else if (col == 0 || table.at(row).at(col).second == 'L') {
+    } else if (col == 0 || table.at(row).at(col).second == 'U') {
       out_top.append(1, ' ');
       out_bot.append(1, seq2.at(row - 1));
       out_mid.append(1, '-');
