@@ -145,7 +145,7 @@ int main(int argc, char* argv[]) {
   std::cout << '\n';
 
   // align using dynamic programming
-  DpAlignment(seq1, seq2);
+  DpAlignment(ReverseComplement(seq1), seq2);
 
   return 0;
 }
