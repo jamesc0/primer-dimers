@@ -27,13 +27,21 @@ bool ValidSequence(std::string str) {
   return true;
 }
 
-int DpAlignment(const std::string &seq1, const std::string &seq2) {
+int DpAlignment(std::string seq1, std::string seq2) {
   std::vector<std::vector<std::pair<unsigned, char>>> table;
   // char is the direction you follow back to the (0, 0).
   // L is left, U is down, D is diagonal.
   
-  std::cout << "aligning the following sequences:\n";
-  std::cout << seq1 << '\n' << seq2 << "\n\n";
+  std::cout << "Input sequences:\n";
+  std::cout << "seq1 = " << seq1 << '\n';
+  std::cout << "seq2 = " << seq2 << '\n';
+  std::cout << '\n';
+
+  seq1 = ReverseComplement(seq1);
+  std::cout << "Aligning the following sequences:\n";
+  std::cout << "seq1_rc = " << seq1 << '\n';
+  std::cout << "seq2 = " << seq2 << '\n';
+  std::cout << '\n';
   
   unsigned cols = seq1.size() + 1;
   unsigned rows = seq2.size() + 1;
@@ -46,25 +54,18 @@ int DpAlignment(const std::string &seq1, const std::string &seq2) {
   unsigned min;
   for (unsigned row = 1; row < rows; ++row) {
     for (unsigned col = 1; col < cols; ++col) {
-      std::cout << "new\n";
       if (seq1.at(col - 1) == seq2.at(row - 1)) {
-        std::cout << "1\n";
         table.at(row).at(col) = {table.at(row - 1).at(col - 1).first, 'D'};
         min = table.at(row).at(col).first;
       } else {
-        std::cout << "2\n";
         table.at(row).at(col) = {table.at(row - 1).at(col - 1).first + 1, 'D'};;
         min = table.at(row).at(col).first;
       }
       if (table.at(row - 1).at(col).first + 1 < min) {
-        std::cout << "val = " << table.at(row - 1).at(col).first + 1 << '\n';
-        std::cout << "3\n";
         table.at(row).at(col) = {table.at(row - 1).at(col).first + 1, 'U'};
         min = table.at(row).at(col).first;
       }
       if (table.at(row).at(col - 1).first + 1 < min) {
-        std::cout << "val = " << table.at(row).at(col - 1).first + 1 << '\n';
-        std::cout << "4\n";
         table.at(row).at(col) = {table.at(row).at(col - 1).first + 1, 'L'};
         min = table.at(row).at(col).first;
       }
@@ -89,12 +90,12 @@ int DpAlignment(const std::string &seq1, const std::string &seq2) {
     if (row == 0 || table.at(row).at(col).second == 'L') {
       out_top.append(1, seq1.at(col - 1));
       out_bot.append(1, ' ');
-      out_mid.append(1, '-');
+      out_mid.append(1, ' ');
       --col;
     } else if (col == 0 || table.at(row).at(col).second == 'U') {
       out_top.append(1, ' ');
       out_bot.append(1, seq2.at(row - 1));
-      out_mid.append(1, '-');
+      out_mid.append(1, ' ');
       --row;
     } else if (table.at(row).at(col).second == 'D') {
       out_top.append(1, seq1.at(col - 1));
@@ -152,13 +153,13 @@ int main(int argc, char* argv[]) {
 
   // print input strings
   std::cout << '\n';
-  std::cout << "input sequences:\n";
+  std::cout << "Input sequences:\n";
   std::cout << "seq1 = " << seq1 << '\n';
   std::cout << "seq2 = " << seq2 << '\n';
   std::cout << '\n';
 
   // align using dynamic programming
-  DpAlignment(ReverseComplement(seq1), seq2);
+  DpAlignment(seq1, seq2);
 
   return 0;
 }
