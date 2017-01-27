@@ -1,0 +1,27 @@
+========================================
+lcs statistics =========================
+avg matches = 5.524503
+all_matches.size() = 190096.000000
+matches = 2         , occurrences = 1         , prob = 0.000005  
+matches = 3         , occurrences = 1510      , prob = 0.007943  
+matches = 4         , occurrences = 32264     , prob = 0.169725  
+matches = 5         , occurrences = 39808     , prob = 0.209410  
+matches = 6         , occurrences = 104331    , prob = 0.548833  
+matches = 7         , occurrences = 8099      , prob = 0.042605  
+matches = 8         , occurrences = 2424      , prob = 0.012751  
+matches = 9         , occurrences = 1265      , prob = 0.006655  
+matches = 10        , occurrences = 281       , prob = 0.001478  
+matches = 11        , occurrences = 82        , prob = 0.000431  
+matches = 12        , occurrences = 20        , prob = 0.000105  
+matches = 13        , occurrences = 6         , prob = 0.000032  
+matches = 14        , occurrences = 3         , prob = 0.000016  
+matches = 15        , occurrences = 2         , prob = 0.000011  
+========================================
+
+TTTTGTAGTTATTTTATGTTGTATTTTTAATCACCGACTGCCCATAGAGAG
+                                 ccgactcagAGTCCTGGATAATTTCTTTCGGT
+                                 
+
+MUTYH_1_F1,ctctctatgggc **agtcgg** tgattAAAAATACAACATAAAATAACTACAAAA,25nmol,Standard Desalting
+
+MUTYH_1_R1,ctgcgtgtct **ccgact** cagAGTCCTGGATAATTTCTTTCGGT,25nmol,Standard Desalting

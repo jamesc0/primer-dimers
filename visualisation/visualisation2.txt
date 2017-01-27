@@ -1,0 +1,49 @@
+Visualisation of primer dimer candidate
+
+========================================
+Parameters =============================
+========================================
+input_file_name = data/Fergus26genes_05may15_idt.txt
+tail_len = 5
+max_mismatches = 1
+j (the length of a jmer) = 5
+minimum_matching_jmers = 2
+minimum_lcs_threshold = 0
+========================================
+
+A primer dimer candidate:
+MUTYH_3_R2 : MUTYH_4_F1
+
+Sequences (all capitals)
+MUTYH_3_R2,CTGCGTGTCTCCGACTCAGAGGCTATATCCACAGGCCTAT
+MUTYH_4_F1,CTCTCTATGGGCAGTCGGTGATTGTGGATATAGCCTCAAAAGCCA
+Reverse complement of MUTYH_3_R2: ATAGGCCTGTGGATATAGCCTCTGAGTCGGAGACACGCAG
+
+So we are trying to match
+Reverse complement of MUTYH_3_R2: ATAGGCCTGTGGATATAGCCTCTGAGTCGGAGACACGCAG
+with
+MUTYH_4_F1 : CTCTCTATGGGCAGTCGGTGATTGTGGATATAGCCTCAAAAGCCA
+
+look for:
+1. 3 prime end matches with 5 bases to within one mismatch
+2. 2 matching 5-mers
+
+1.
+      ATAGGCCTGTGGATATAGCCTCTGAGTCGGAGACACGCAG
+CTCTCTATGGGCAGTCGGTGATTGTGGATATAGCCTCAAAAGCCA
+
+2.
+Reverse complement of MUTYH_3_R2 with end to end tiling
+ATAGG | CCTGT | GGATA | TAGCC | TCTGA | GTCGG | AGACA | CGCAG
+1       2       3       4       5       6       7       8
+
+CTCTCTATGGGCAGTCGGTGATTGTGGATATAGCCTCAAAAGCCA
+                         _____
+                         3
+                              _____
+                              4
+
+actual alignment (Smith-Waterman alignment on EMBOSS)
+EMBOSS_001         1 ATAGGC---------CTGTGGATATAGCCTCTGAGTCGGAGACA     35
+                     ||.|||         .|||||||||||||||..|     ||.||
+EMBOSS_001         7 ATGGGCAGTCGGTGATTGTGGATATAGCCTCAAA-----AGCCA     45

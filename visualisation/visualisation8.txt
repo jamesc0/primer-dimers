@@ -1,0 +1,89 @@
+Visualisation of primer dimer candidate
+
+========================================
+Parameters =============================
+========================================
+input_file_name = data/Fergus26genes_05may15_idt.txt
+tail_len = 5
+max_mismatches = 1
+j (the length of a jmer) = 5
+minimum_matching_jmers = 2
+minimum_lcs_threshold = 0
+========================================
+
+A primer dimer candidate:
+RAD50_19_F2 : RINT1_14_R2 
+
+Sequences (all capitals)
+RAD50_19_F2,CTCTCTATGGGCAGTCGGTGATTAAAGAAACTGAACTTAATAAAGTAATA
+RINT1_14_R2,CTGCGTGTCTCCGACTCAGACAATTTGATACATTAATATTAATTGTT
+Reverse complement of RAD50_19_F2: TATTACTTTATTAAGTTCAGTTTCTTTAATCACCGACTGCCCATAGAGAG
+Reverse complement of RINT1_14_R2: AACAATTAATATTAATGTATCAAATTGTCTGAGTCGGAGACACGCAG
+
+So we are trying to match
+Reverse complement of RAD50_19_F2: TATTACTTTATTAAGTTCAGTTTCTTTAATCACCGACTGCCCATAGAGAG
+RINT1_14_R2,CTGCGTGTCTCCGACTCAGACAATTTGATACATTAATATTAATTGTT
+
+look for:
+1. 3 prime end matches with 5 bases to within one mismatch
+2. 2 matching 5-mers
+
+1.
+                                 TATTACTTTATTAAGTTCAGTTTCTTTAATCACCGACTGCCCATAGAGAG
+CTGCGTGTCTCCGACTCAGACAATTTGATACATTAATATTAATTGTT
+
+2.
+Reverse complement of RAD50_19_F2: 
+TATTA | CTTTA | TTAAG | TTCAG | TTTCT | TTAAT | CACCG | ACTGC | CCATA | GAGAG
+1       2       3       4       5       6       7       8       9
+
+CTGCGTGTCTCCGACTCAGACAATTTGATACATTAATATTAATTGTT
+                                    _____
+                                    1
+                                _____
+                                6
+
+actual alignment (dp)
+########################################
+# Program: water
+# Rundate: Wed 18 Jan 2017 03:23:50
+# Commandline: water
+#    -auto
+#    -stdout
+#    -asequence emboss_water-I20170118-032349-0656-36849485-es.asequence
+#    -bsequence emboss_water-I20170118-032349-0656-36849485-es.bsequence
+#    -datafile EDNAFULL
+#    -gapopen 10.0
+#    -gapextend 0.5
+#    -aformat3 pair
+#    -snucleotide1
+#    -snucleotide2
+# Align_format: pair
+# Report_file: stdout
+########################################
+
+#=======================================
+#
+# Aligned_sequences: 2
+# 1: EMBOSS_001
+# 2: EMBOSS_001
+# Matrix: EDNAFULL
+# Gap_penalty: 10.0
+# Extend_penalty: 0.5
+#
+# Length: 27
+# Identity:      13/27 (48.1%)
+# Similarity:    13/27 (48.1%)
+# Gaps:          12/27 (44.4%)
+# Score: 41.5
+# 
+#
+#=======================================
+
+EMBOSS_001         4 TACTTTATTAAGTTCAGTTTCTTTAAT     30
+                     |||.|||.||            |||||
+EMBOSS_001        29 TACATTAATA------------TTAAT     43
+
+
+#---------------------------------------
+#---------------------------------------

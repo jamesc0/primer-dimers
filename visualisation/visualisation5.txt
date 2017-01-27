@@ -1,0 +1,90 @@
+Visualisation of primer dimer candidate
+
+========================================
+Parameters =============================
+========================================
+input_file_name = data/Fergus26genes_05may15_idt.txt
+tail_len = 5
+max_mismatches = 1
+j (the length of a jmer) = 5
+minimum_matching_jmers = 2
+minimum_lcs_threshold = 0
+========================================
+
+A primer dimer candidate:
+PPM1D_2_R3 : PTEN_5_F2
+
+Sequences (all capitals)
+PPM1D_2_R3,CTGCGTGTCTCCGACTCAGATAGAACCAAAAGAGGAAAGAGAA
+PTEN_5_F2,CTCTCTATGGGCAGTCGGTGATTAGCTAGAACTTATCAAACCCTTTT
+Reverse complement of PTEN_5_F2 : AAAAGGGTTTGATAAGTTCTAGCTAATCACCGACTGCCCATAGAGAG
+
+So we are trying to match
+Reverse complement of PTEN_5_F2 : AAAAGGGTTTGATAAGTTCTAGCTAATCACCGACTGCCCATAGAGAG
+PPM1D_2_R3,CTGCGTGTCTCCGACTCAGATAGAACCAAAAGAGGAAAGAGAA
+
+look for:
+1. 3 prime end matches with 5 bases to within one mismatch
+2. 2 matching 5-mers
+
+1.
+                           AAAAGGGTTTGATAAGTTCTAGCTAATCACCGACTGCCCATAGAGAG
+CTGCGTGTCTCCGACTCAGATAGAACCAAAAGAGGAAAGAGAA
+
+
+2.
+
+Reverse complement of PTEN_5_F2 with end to end tiling: 
+AAAAG | GGTTT | GATAA | GTTCT | AGCTA | ATCAC | CGACT | GCCCA | TAGAG | AG
+1       2       3       4       5       6       7       8       9
+
+CTGCGTGTCTCCGACTCAGATAGAACCAAAAGAGGAAAGAGAA
+                           _____
+                           1
+           _____
+           7
+
+actual alignment (SW)
+########################################
+# Program: water
+# Rundate: Wed 18 Jan 2017 02:09:52
+# Commandline: water
+#    -auto
+#    -stdout
+#    -asequence emboss_water-I20170118-020947-0379-1264091-oy.asequence
+#    -bsequence emboss_water-I20170118-020947-0379-1264091-oy.bsequence
+#    -datafile EDNAFULL
+#    -gapopen 10.0
+#    -gapextend 0.5
+#    -aformat3 pair
+#    -snucleotide1
+#    -snucleotide2
+# Align_format: pair
+# Report_file: stdout
+########################################
+
+#=======================================
+#
+# Aligned_sequences: 2
+# 1: EMBOSS_001
+# 2: EMBOSS_001
+# Matrix: EDNAFULL
+# Gap_penalty: 10.0
+# Extend_penalty: 0.5
+#
+# Length: 28
+# Identity:      17/28 (60.7%)
+# Similarity:    17/28 (60.7%)
+# Gaps:           8/28 (28.6%)
+# Score: 50.0
+# 
+#
+#=======================================
+
+EMBOSS_001        27 TCACCGACTGCCCATAG-------AGAG     47
+                     ||.|||||| |..||||       ||||
+EMBOSS_001         8 TCTCCGACT-CAGATAGAACCAAAAGAG     34
+
+
+#---------------------------------------
+#---------------------------------------

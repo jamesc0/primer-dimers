@@ -1,23 +1,20 @@
 #include <math.h>       // for pow()
 #include <stdio.h>      // for printf, scanf, fgets
 #include <stdlib.h>     // for malloc()
-#include <string.h>     // for strlen(), strcpy()
 
 #include <algorithm>    // for std::accumulate()
-#include <cstring>      // for std::strcpy
 #include <fstream>      // for std::ifstream
 #include <iostream>     // for std::cout
-#include <limits>       // for std::numericlimits
+#include <limits>       // for std::numeric_limits
 #include <map>          // for std::map
 #include <set>          // for std::set
 
-//const char* input_file_name = "data/Fergus129snps_05may15_idt.txt";
 const unsigned tail_len = 5;
 const unsigned max_mismatches = 1;
 const unsigned j = 5;
-const unsigned minimum_matching_jmers = 2;
-const unsigned minimum_lcs_threshold = 0;
-const bool coarse = true;  // this means that one primer will be parsed 'coarse' and the other not
+const unsigned minimum_matching_jmers = 3;
+const unsigned minimum_lcs_threshold = 6;
+const bool coarse = false;  // if this is true, one primer of each pair will be parsed end-to-end
 
 const unsigned number_of_bases = 4;
 
@@ -55,6 +52,7 @@ std::map<char, int> base_map = {{'A', 0}, {'T', 1}, {'C', 2}, {'G', 3}};
 
 int hash(const std::string &str);
 std::string ReverseComplement(const std::string &src);
+bool ValidSequence(std::string str);
 std::vector<PrimerClass> ReadInputFile(const std::string &input_file_name);
 std::set<std::set<int>> kSubsets(int n, int k);
 std::set<std::string> kMismatch(std::string input_str, int max_mismatches);
@@ -76,51 +74,27 @@ int main(int argc, char* argv[]) {
   input_file_name = argv[1];
 
   // print parameters
-  printf("========================================\n");
-  printf("Parameters =============================\n");
-  printf("========================================\n");
+  std::cout << "========================================\n";
+  std::cout << "Parameters =============================\n";
+  std::cout << "========================================\n";
   std::cout << "input_file_name = " << input_file_name << '\n';
   std::cout << "tail_len = " << tail_len << '\n';
   std::cout << "max_mismatches = " << max_mismatches << '\n';
   std::cout << "j (the length of a jmer) = " << j << '\n';
   std::cout << "minimum_matching_jmers = " << minimum_matching_jmers << '\n';
   std::cout << "minimum_lcs_threshold = " << minimum_lcs_threshold << '\n';
-  printf("========================================\n");
-  printf("\n");
+  std::cout << "coarse = " << coarse << '\n';
+  std::cout << "========================================\n";
+  std::cout << '\n';
 
   // load primers
   auto primers = ReadInputFile(input_file_name);
-  
-  // investigate lcs
-  /*
-  int lcs_len;
-  std::vector<int> all_matches;
-  for (auto i = 0u; i < primers.size()/6; ++i) {
-    for (auto j = 0u; j < primers.size()/6; ++j) {
-      lcs_len = LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence());
-      all_matches.push_back(lcs_len);
-    }
-  }
-  printf("========================================\n");
-  printf("lcs statistics =========================\n");
-  printf("avg matches = %f\n", std::accumulate(all_matches.begin(), all_matches.end(), 0ull)/(double)all_matches.size());
-  printf("all_matches.size() = %f\n", (double)all_matches.size());
-  std::vector<int> stats(100000, 0);
-  for (int match : all_matches) {
-    ++stats[match];
-  }
-  for (auto i = 0u; i < stats.size(); ++i) {
-    if (stats[i] != 0) {
-      printf("matches = %-10i, occurrences = %-10i, prob = %-10f\n", i, stats[i], stats[i]/(double)all_matches.size());
-    }
-  }
-  printf("========================================\n");
-  */
-  
+
+  // calculate tail and jmer hits
   auto tail_hits = MatchTails(primers, tail_len, max_mismatches);
   auto jmer_hits = MatchJmers(primers, j, coarse);
-  
-  // investigate all conditions
+
+  // print statistics
   unsigned sample_size = std::min(1000u, static_cast<unsigned>(primers.size()));
   unsigned tail_count = 0;
   unsigned jmer_count = 0;
@@ -138,30 +112,30 @@ int main(int argc, char* argv[]) {
         ++jmer_count;
         ++conditions_met;
       }
-      /*
-      if (LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence()) >= minimum_lcs_threshold) {
+      if (minimum_lcs_threshold == 0 ||
+          LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence()) >= minimum_lcs_threshold) {
         ++lcs_count;
         ++conditions_met;
       }
       if (conditions_met == 3) {
         ++all_count;
       }
-      */
     }
   }
-  printf("========================================\n");
-  printf("Sample =================================\n");
-  printf("========================================\n");
+  std::cout << "========================================\n";
+  std::cout << "Results for small sample ===============\n";
+  std::cout << "========================================\n";
+  std::cout << "sample size = " << sample_size << '\n';
   std::cout << "proportion of pairs in small sample successful for tail: " << (double)tail_count / (sample_size * sample_size) << '\n';
   std::cout << "proportion of pairs in small sample successful for jmer: " << (double)jmer_count / (sample_size * sample_size) << '\n';
-  //std::cout << "proportion of pairs in small sample successful for all: " << (double)all_count / (sample_size * sample_size) << '\n';
-  printf("========================================\n");
-  printf("\n");
+  std::cout << "proportion of pairs in small sample successful for tail, jmer and lcs: " << (double)all_count / (sample_size * sample_size) << '\n';
+  std::cout << "========================================\n";
+  std::cout << "\n";
 
   // final results
-  printf("========================================\n");
-  printf("Results: primer dimer candidates =======\n");
-  printf("========================================\n");
+  std::cout << "========================================\n";
+  std::cout << "Results: primer dimer candidates =======\n";
+  std::cout << "========================================\n";
   int count = 0;
   bool found;
   for (auto i = 0u; i < primers.size(); ++i) {
@@ -169,7 +143,7 @@ int main(int argc, char* argv[]) {
     for (auto j = 0u; j < primers.size(); ++j) {
       if (!tail_hits[i][j]) continue;
       if (jmer_hits[i][j] < minimum_matching_jmers) continue;
-      //if (LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence()) < minimum_lcs_threshold) continue;
+      if (minimum_lcs_threshold > 0 && LcsLen(ReverseComplement(primers[i].GetSequence()), primers[j].GetSequence()) < minimum_lcs_threshold) continue;
       if (!found) {
         std::cout << '\n' << primers[i].GetName() << " : ";
         std::cout << primers[j].GetName();
@@ -181,12 +155,12 @@ int main(int argc, char* argv[]) {
       //if (count % 100 == 0) std::cout << "count = " << count << '\n';
     }
   }
-  printf("\n");
-  printf("========================================\n");
-  printf("\n");
+  std::cout << "\n";
+  std::cout << "========================================\n";
+  std::cout << "\n";
   
-  std::cout << count << '\n';
-  std::cout << "proportion of hits = " << (double)count / (primers.size() * primers.size()) << '\n';
+  std::cout << "total hits = " << count << '\n';
+  std::cout << "proportion of hits out of all pairs = " << (double)count / (primers.size() * primers.size()) << '\n';
 
   return 0;
 }
@@ -208,6 +182,15 @@ std::string ReverseComplement(const std::string &src) {
   return ret_str;
 }
 
+bool ValidSequence(std::string str) {
+  for (char c : str) {
+    if (c != 'A' && c != 'T' && c != 'C' && c != 'G') {
+      return false;
+    }
+  }
+  return true;
+}
+
 std::vector<PrimerClass> ReadInputFile(const std::string &input_file_name) {
   std::ifstream instream(input_file_name);
   if (!instream.is_open()) {
@@ -226,6 +209,12 @@ std::vector<PrimerClass> ReadInputFile(const std::string &input_file_name) {
     if (instream.eof()) {
       break;
     } else {
+	    if (!ValidSequence(sequence)) {
+        std::cout << "Invalid sequence:\n";
+        std::cout << "primer name = " << name << "\n";
+        std::cout << "sequence = " << sequence << "\n";
+        std::exit(EXIT_FAILURE);
+      }
       PrimerClass primer;
       primer.SetName(name);
       primer.SetSequence(sequence);

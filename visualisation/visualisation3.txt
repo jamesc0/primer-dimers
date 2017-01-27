@@ -1,0 +1,56 @@
+Visualisation of primer dimer candidate
+
+========================================
+Parameters =============================
+========================================
+input_file_name = data/Fergus26genes_05may15_idt.txt
+tail_len = 5
+max_mismatches = 1
+j (the length of a jmer) = 5
+minimum_matching_jmers = 2
+minimum_lcs_threshold = 0
+========================================
+
+A primer dimer candidate:
+MRE11A_4_R1 : PTEN_2_F2
+
+Sequences (all capitals)
+MRE11A_4_R1,CTGCGTGTCTCCGACTCAGTTAAGAATAACATAATGCACATTTCA
+PTEN_2_F2,CTCTCTATGGGCAGTCGGTGATTTCTTTCCTTAACTAAAGTACTCAG
+
+Reverse complement of PTEN_2_F2 : CTGAGTACTTTAGTTAAGGAAAGAAATCACCGACTGCCCATAGAGAG
+MRE11A_4_R1,CTGCGTGTCTCCGACTCAGTTAAGAATAACATAATGCACATTTCA
+
+So we are trying to match
+Reverse complement of PTEN_2_F2 : CTGAGTACTTTAGTTAAGGAAAGAAATCACCGACTGCCCATAGAGAG
+with
+MRE11A_4_R1,CTGCGTGTCTCCGACTCAGTTAAGAATAACATAATGCACATTTCA
+
+look for:
+1. 3 prime end matches with 5 bases to within one mismatch
+2. 2 matching 5-mers
+
+1.
+
+CTGAGTACTTTAGTTAAGGAAAGAAATCACCGACTGCCCATAGAGAG
+CTGCGTGTCTCCGACTCAGTTAAGAATAACATAATGCACATTTCA
+
+2.
+Reverse complement of PTEN_2_F2 : CTGAGTACTTTAGTTAAGGAAAGAAATCACCGACTGCCCATAGAGAG
+MRE11A_4_R1,CTGCGTGTCTCCGACTCAGTTAAGAATAACATAATGCACATTTCA
+
+CTGAG | TACTT | TAGTT | AAGGA | AAGAA | ATCAC | CGACT | GCCCA | TAGAG | AG
+1       2       3       4       5       6       7       8       9
+
+CTGCGTGTCTCCGACTCAGTTAAGAATAACATAATGCACATTTCA
+                     _____
+                     5
+           _____
+           7
+
+Reverse complement of with end to end tiling
+
+actual alignment (SW EMBOSS)
+EMBOSS_001         1 CTGAGT-------ACTTTAGTTAAGGAAAGAAATCACCGACTGCCCAT     41
+                     |||.||       || |.|||||||      |||.||..|.|||.|||
+EMBOSS_001         1 CTGCGTGTCTCCGAC-TCAGTTAAG------AATAACATAATGCACAT     41

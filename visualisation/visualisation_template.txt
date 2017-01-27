@@ -1,0 +1,38 @@
+Visualisation of primer dimer candidate
+
+========================================
+Parameters =============================
+========================================
+input_file_name = data/Fergus26genes_05may15_idt.txt
+tail_len = 5
+max_mismatches = 1
+j (the length of a jmer) = 5
+minimum_matching_jmers = 2
+minimum_lcs_threshold = 0
+========================================
+
+A primer dimer candidate:
+ : 
+
+Sequences (all capitals)
+
+Reverse complement of : 
+
+So we are trying to match
+Reverse complement of  : 
+
+ : 
+
+look for:
+1. 3 prime end matches with 5 bases to within one mismatch
+2. 2 matching 5-mers
+
+1.
+
+2.
+
+Reverse complement of with end to end tiling
+
+1       2       3       4       5       6       7       8       9
+
+actual alignment (dp)
