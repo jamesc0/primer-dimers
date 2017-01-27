@@ -1,10 +1,10 @@
 An algorithm which, given a list of primers, returns primer dimer candidates.
 
-To run, compile using
+Compile using
 
 make main
 
-To run, enter
+Run using
 
 ./main data/data.txt > out.txt
 
